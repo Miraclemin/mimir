@@ -62,16 +62,16 @@ def num_tokens_from_messages(messages, model):
 
 def baize_demo(topic_list, index_list, asure = True, max_rounds = 5, max_input_token = 3000, user_temperature = 0.1, ai_temperature = 0.1):
     openai.api_key = None
-    openai.api_key = "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"
+    openai.api_key = ""
     if asure:
         openai.api_type = "azure"
-        openai.api_base = "https://biocodeeval-openai.openai.azure.com/"
+        openai.api_base = ""
         openai.api_version = "2023-05-15"
-        openai.api_key = 'aaccba8e27374383beb397ecdc615ee5'  # get this API key from the resource (its not inside the OpenAI deployment portal)
+        openai.api_key = ''  # get this API key from the resource (its not inside the OpenAI deployment portal)
         key_bundles = [
-            ('aaccba8e27374383beb397ecdc615ee5', "https://biocodeeval-openai.openai.azure.com/"),
-            ('3a648cbe477c4c0c8061cbdd0a4b8855', "https://biocodeeval-openai2.openai.azure.com/"),
-            ('7864e774f3db4066a54c1979672f316c', "https://biocodeeval-openai3.openai.azure.com/")
+            ('', ""),
+            ('', ""),
+            ('', "")
         ]
     total_tokens = 0
     conversation_state = []

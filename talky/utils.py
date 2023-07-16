@@ -4,8 +4,8 @@ import os
 import datasets
 import requests
 
-from promptsource import DEFAULT_PROMPTSOURCE_CACHE_HOME
-from promptsource.templates import INCLUDED_USERS
+#from promptsource import DEFAULT_PROMPTSOURCE_CACHE_HOME
+#from promptsource.templates import INCLUDED_USERS
 
 
 def removeHyphen(example):
