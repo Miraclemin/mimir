@@ -51,7 +51,6 @@ def load_json_list(fp: Union[Path, str], encoding='utf-8') -> List[dict]:
 def verify(q4human: str, a4ai: str) -> Dict[str, str]:
     # res_list = []
     input_txt = 'Question: ' + q4human + '\n' + 'Answer: ' + a4ai
-    
     narration = make_narration(instruction=INSTRUCTION_VERIFY, 
                                 input_text=input_txt, 
                                 temperature=0.1,
@@ -74,7 +73,7 @@ def make_narration(instruction=None, *args, **kwargs):
 
     try:
         response = openai.ChatCompletion.create(engine="gpt-35-turbo", messages=input_msg, temperature=temp)
-        result = response.choices[0].message["content"].replace('\n', ' ')
+        result = response.choices[0].message["content"]
         return result
         #print(result)
     except openai.error.Timeout:
@@ -82,7 +81,7 @@ def make_narration(instruction=None, *args, **kwargs):
         key_bundle = random.choice(key_bundles)
         openai.api_key, openai.api_base = key_bundle
         response = openai.ChatCompletion.create(engine="gpt-35-turbo", messages=input_msg, temperature=temp)
-        result = response.choices[0].message["content"].replace('\n', ' ')
+        result = response.choices[0].message["content"]
         #print(result)
     except openai.error.InvalidRequestError:
         print("InvalidRequestError")

@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+
 import multiprocessing
 import functools
 from hashlib import sha256
@@ -19,13 +22,14 @@ from utils import (
 )
 from chat_method.baize import *
 from chat_method.verify_construct import *
-from chat_method.finetune import *
+# from chat_method.finetune import *
 
 # DATASET_INFOS_CACHE_DIR = os.path.join(DEFAULT_PROMPTSOURCE_CACHE_HOME, "DATASET_INFOS")
 # os.makedirs(DATASET_INFOS_CACHE_DIR, exist_ok=True)
 # Python 3.8 switched the default start method from fork to spawn. OS X also has
 # some issues related to fork, eee, e.g., https://github.com/bigscience-workshop/promptsource/issues/572
 # so we make sure we always use spawn for consistency
+PATTERN = r'[{,]("?\w+"?):\s*(".*?"|\[.*?\]|\{.*?\}|\d+\.?\d*)'
 multiprocessing.set_start_method("spawn", force=True)
 
 def get_infos(all_infos, d_name):
@@ -231,7 +235,6 @@ def run_app():
         # 将页面分割为两列
         col1, _, col2, col3 = st.beta_columns([6,1,12,12])
         chat_content = {}
-        Dialogue_Lst = []
         # 在第一列中放置第一个按钮
         with col1:
             st.subheader("Talk Setting")
@@ -322,12 +325,14 @@ def run_app():
                     #     st.markdown("***")
                     try:
                         narration_after_verify = verify(human_rsp, ai_rsp)
-                        narration_after_verify = eval(narration_after_verify)
-                        verify_lst.append({'human': narration_after_verify['Question'], 
-                                    'ai': narration_after_verify['Answer']})
+                        # narration_after_verify = eval(narration_after_verify)
+                        verify_lst.append({'human': human_rsp, 
+                                    'ai': narration_after_verify})
                     except:
                         narration_after_verify = ai_rsp
                         verify_lst.append({'human': human_rsp, 'ai': ai_rsp})
+                    
+                print("0000", verify_lst)
                 st.session_state.VerifyDialogue = verify_lst
 
                 # for cnt, item in enumerate(verify_lst):
@@ -354,6 +359,7 @@ def run_app():
                     item = st.session_state.VerifyDialogue[cnt]
                     human_rsp = item['human']
                     ai_rsp = item['ai']
+                    # ai_rsp = re.search(r"Answer:(.*)", ai_rsp).group(1)
                     st.markdown("#### *Human:*")
                     st.markdown(f'<span style="color:#DAA520">{human_rsp}</span>', unsafe_allow_html=True)
                     st.markdown("#### *AI:*")
