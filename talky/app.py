@@ -3,6 +3,7 @@ import functools
 from hashlib import sha256
 from multiprocessing import Manager, Pool
 import streamlit as st
+import re
 from datasets import get_dataset_infos
 from datasets.info import DatasetInfosDict
 from pygments.formatters import HtmlFormatter
@@ -17,6 +18,8 @@ from utils import (
     render_features,
 )
 from chat_method.baize import *
+from chat_method.verify_construct import *
+from chat_method.finetune import *
 
 # DATASET_INFOS_CACHE_DIR = os.path.join(DEFAULT_PROMPTSOURCE_CACHE_HOME, "DATASET_INFOS")
 # os.makedirs(DATASET_INFOS_CACHE_DIR, exist_ok=True)
@@ -45,7 +48,12 @@ def get_infos(all_infos, d_name):
     all_infos[d_name] = infos_dict
 
 
-select_options = ["Format 1", "Agent Talk", "Format 2"]
+select_options = ["Format 1", "Agent Talk", "Training a LLM"]
+MODEL_SELECT_OPTION = ['LLaMA-7B', 'LLaMA-13B', 'Vicuna-7B', 'Vicuna-13B']
+MODEL2HF_DCT = {'LLaMA-7B': 'decapoda-research/llama-7b-hf', 'LLaMA-13B': 'decapoda-research/llama-13b-hf',
+                 'Vicuna-7B': 'lmsys/vicuna-7b-v1.3', 'Vicuna-13B': 'lmsys/vicuna-13b-v1.3'}
+DATASET_SELCET_OPTION = ['alpaca', 'ShareGPt']
+DASET2HF_DCT = {'alpaca': 'tatsu-lab/alpaca', 'ShareGPT': 'RyokoAI/ShareGPT52K'}
 side_bar_title_prefix = "Talky"
 
 # #
@@ -65,8 +73,13 @@ def run_app():
     # pool.map(functools.partial(get_infos, all_infos), all_datasets)
     # pool.close()
     # pool.join()
+    if 'Dialogue' not in st.session_state:
+        st.session_state['Dialogue'] = []
+    if 'Verify_dialogue' not in st.session_state:
+        st.session_state['VerifyDialogue'] = []
+
     st.set_page_config(page_title="Talky", layout="wide")
-    st.sidebar.image('./assets/logo.jpeg')
+    st.sidebar.image('../assets/logo.jpeg')
     st.sidebar.markdown(
         "<center><a href='https://github.com/' style='font-size: 40px;'>Talky\n\n</a></center>",
         unsafe_allow_html=True,
@@ -84,9 +97,41 @@ def run_app():
     if mode == "Format 1":
         st.title("Format 1")
         st.write("TO BE DEV")
-    if mode == "Format 2":
-        st.title("Format 2")
-        st.write("TO BE DEV")
+    if mode == "Training a LLM":
+        col1, _, col2 = st.beta_columns([12,1,20])
+        chat_content = {}
+        # 在第一列中放置第一个按钮
+        with col1:
+            st.subheader("Training Setting")
+            batch_size = st.slider('Batch Size', 1, 512, 128)
+            eval_steps = st.slider('Eval Steps', 0, 1000, 10)
+            save_steps = st.slider('Save Steps', 0, 1000, 10)
+            cutoff_len = st.slider('Cutoff Len', 1, 2048, 512)
+            num_epochs = st.slider('Num Epochs', 1, 10, 3)
+            lora_r = st.slider('Lora Rank', 1, 32, 8)
+            lora_alpha = st.slider('Lora Alpha', 1, 32, 16)
+            train_button = st.button('Begin to Train 👽')
+            model = st.sidebar.selectbox(
+                label="Base Model Selection",
+                options=MODEL_SELECT_OPTION,
+                index=0,
+                key="model_select",
+            )
+            dataset = st.sidebar.selectbox(
+                label="Dataset Selection",
+                options=DATASET_SELCET_OPTION,
+                index=0,
+                key="dataset_select",
+            )
+            base_model = MODEL2HF_DCT[model]
+            base_dataset = DASET2HF_DCT[dataset]
+            train(base_model = base_model, data_path = base_dataset,
+                  output_dir =  "./output/saved_model", eval_steps = eval_steps, 
+                  save_steps = save_steps, batch_size = batch_size,
+                  num_epochs = num_epochs, learning_rate = 3e-4,
+                  cutoff_len = cutoff_len, lora_r = lora_r,
+                  lora_alpha = lora_alpha)
+            
     if mode == "Agent Talk":
         topic_list = []
         index_list = []
@@ -184,8 +229,9 @@ def run_app():
             st.markdown(md)
 
         # 将页面分割为两列
-        col1, _, col2 = st.beta_columns([12,1,12])
+        col1, _, col2, col3 = st.beta_columns([6,1,12,12])
         chat_content = {}
+        Dialogue_Lst = []
         # 在第一列中放置第一个按钮
         with col1:
             st.subheader("Talk Setting")
@@ -205,6 +251,8 @@ def run_app():
             dialogue = ''
             st.write('\n')
             setting_done = st.button('Begin to Talk Demo  🚀')
+            verify_button = st.button('Begin to Verify 👾')
+
             if setting_done:
                 if topic:
                     topic_list.append(topic)
@@ -216,6 +264,7 @@ def run_app():
                 else:
                     st.write('Please Input The Topic Or Upload the Topic File')
         with col2:
+            st.subheader("Generation")
             if setting_done:
                 st.subheader("Talk Demo")
                 if len(chat_content):
@@ -223,18 +272,94 @@ def run_app():
                         topic_str = "#### *Topic:* " + key
                         st.markdown(topic_str)
                         lines = value.split('[Human]')
+                        dialogue_lst = []
                         for line in lines:
                             if len(line) > 0:
+                                tmp_dct = {}
                                 line_temp = line.split('[AI]')
-                                st.markdown("#### *Human:*")
-                                st.markdown(f'<span style="color:#DAA520">{line_temp[0]}</span>', unsafe_allow_html=True)
-                                st.markdown("#### *AI:*")
-                                st.markdown(f'<span style="color:#00FF00">{line_temp[1]}</span>', unsafe_allow_html=True)
-                                st.markdown("***")
+                                tmp_dct['human'] = line_temp[0]
+                                tmp_dct['ai'] = line_temp[1]
+                                dialogue_lst.append(tmp_dct)
+                        for cnt, item in enumerate(dialogue_lst):
+                            human_rsp = item['human']
+                            ai_rsp = item['ai']
+                            st.markdown("#### *Human:*")
+                            st.markdown(f'<span style="color:#DAA520">{human_rsp}</span>', unsafe_allow_html=True)
+                            st.markdown("#### *AI:*")
+                            st.markdown(f'<span style="color:#00FF00">{ai_rsp}</span>', unsafe_allow_html=True)
+                            st.markdown("***")
+                            # verify_button = st.button('Begin to Verify No ' + str(cnt+1) + '👾')
+                            # if verify_button:
+                            #     st.markdown("Here begin to do")
+                            #     narration_after_verify = verify(line_temp[0], line_temp[1])
+                            #     print("0000", narration_after_verify)
+                            #     human_question = narration_after_verify['Question']
+                            #     ai_answer = narration_after_verify['Answer']
+                            #     st.markdown("#### *AI After Verify:*")
+                            #     st.markdown("#### *Human:*")
+                            #     st.markdown(f'<span style="color:#00FF00">{human_question}</span>', unsafe_allow_html=True)
+                            #     st.markdown("#### *AI:*")
+                            #     st.markdown(f'<span style="color:#00FF00">{ai_answer}</span>', unsafe_allow_html=True)
+                    st.markdown("***")
+                    st.session_state.Dialogue = dialogue_lst
                 else:
                     st.write('Error in the talking generation')
+            # verify_button = st.button('Begin to Verify 👾')
+            # construct_button = st.button('Begin to Construct 👾')
                 st.write('\n')
-                file_process = st.button('Begin to Process file ♻️')
+        with col3:
+            st.subheader("Verification")
+            if verify_button:
+                verify_lst = []
+                for cnt, item in enumerate(st.session_state.Dialogue):
+                    human_rsp = item['human']
+                    ai_rsp = item['ai']
+                    # with col2:
+                    #     st.markdown("#### *Human:*")
+                    #     st.markdown(f'<span style="color:#DAA520">{human_rsp}</span>', unsafe_allow_html=True)
+                    #     st.markdown("#### *AI:*")
+                    #     st.markdown(f'<span style="color:#00FF00">{ai_rsp}</span>', unsafe_allow_html=True)
+                    #     st.markdown("***")
+                    try:
+                        narration_after_verify = verify(human_rsp, ai_rsp)
+                        narration_after_verify = eval(narration_after_verify)
+                        verify_lst.append({'human': narration_after_verify['Question'], 
+                                    'ai': narration_after_verify['Answer']})
+                    except:
+                        narration_after_verify = ai_rsp
+                        verify_lst.append({'human': human_rsp, 'ai': ai_rsp})
+                st.session_state.VerifyDialogue = verify_lst
+
+                # for cnt, item in enumerate(verify_lst):
+                #     human_rsp = item['human']
+                #     ai_rsp = item['ai']
+                #     st.markdown("#### *Human:*")
+                #     st.markdown(f'<span style="color:#DAA520">{human_rsp}</span>', unsafe_allow_html=True)
+                #     st.markdown("#### *AI:*")
+                #     st.markdown(f'<span style="color:#00FFFF">{ai_rsp}</span>', unsafe_allow_html=True)
+                #     st.markdown("***")
+
+        # Begin to view
+        if verify_button:
+            for cnt, item in enumerate(st.session_state.Dialogue):
+                human_rsp = item['human']
+                ai_rsp = item['ai']
+                with col2:
+                    st.markdown("#### *Human:*")
+                    st.markdown(f'<span style="color:#DAA520">{human_rsp}</span>', unsafe_allow_html=True)
+                    st.markdown("#### *AI:*")
+                    st.markdown(f'<span style="color:#00FF00">{ai_rsp}</span>', unsafe_allow_html=True)
+                    st.markdown("***")
+                with col3:
+                    item = st.session_state.VerifyDialogue[cnt]
+                    human_rsp = item['human']
+                    ai_rsp = item['ai']
+                    st.markdown("#### *Human:*")
+                    st.markdown(f'<span style="color:#DAA520">{human_rsp}</span>', unsafe_allow_html=True)
+                    st.markdown("#### *AI:*")
+                    st.markdown(f'<span style="color:#9ACD32">{ai_rsp}</span>', unsafe_allow_html=True)
+                    st.markdown("***")
+                        
     state.sync()
 
 if __name__ == "__main__":

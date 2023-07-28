@@ -57,12 +57,12 @@ def verify(q4human: str, a4ai: str) -> Dict[str, str]:
                                 temperature=0.1,
                                 model_type='chatgpt')
     return narration
-    print(f"narration: {narration}")
-    res_dct =  ast.literal_eval(narration) 
-    if 'Question' in res_dct and 'Answer' in res_dct:
-        return res_dct
-    else:
-        return {'Question': q4human, 'Answer': a4ai}
+    # print(f"narration: {narration}")
+    # res_dct =  ast.literal_eval(narration) 
+    # if 'Question' in res_dct and 'Answer' in res_dct:
+    #     return res_dct
+    # else:
+    #     return {'Question': q4human, 'Answer': a4ai}
 
 
 def make_narration(instruction=None, *args, **kwargs):
@@ -71,7 +71,6 @@ def make_narration(instruction=None, *args, **kwargs):
 
     input_text = instruction + '\n' + input_text
     input_msg = [{"role": "user", "content": input_text}]
-    print("user_msg: ", input_msg)
 
     try:
         response = openai.ChatCompletion.create(engine="gpt-35-turbo", messages=input_msg, temperature=temp)
