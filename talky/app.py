@@ -11,7 +11,7 @@ from datasets import get_dataset_infos
 from datasets.info import DatasetInfosDict
 from pygments.formatters import HtmlFormatter
 # from talky import DEFAULT_PROMPTSOURCE_CACHE_HOME
-from session import _get_state
+# from session import _get_state
 from utils import (
     get_dataset,
     get_dataset_confs,
@@ -56,7 +56,7 @@ select_options = ["Format 1", "Agent Talk", "Training a LLM"]
 MODEL_SELECT_OPTION = ['LLaMA-7B', 'LLaMA-13B', 'Vicuna-7B', 'Vicuna-13B']
 MODEL2HF_DCT = {'LLaMA-7B': 'decapoda-research/llama-7b-hf', 'LLaMA-13B': 'decapoda-research/llama-13b-hf',
                  'Vicuna-7B': 'lmsys/vicuna-7b-v1.3', 'Vicuna-13B': 'lmsys/vicuna-13b-v1.3'}
-DATASET_SELCET_OPTION = ['alpaca', 'ShareGPt']
+DATASET_SELCET_OPTION = ['alpaca 52k', 'ShareGPT']
 DASET2HF_DCT = {'alpaca': 'tatsu-lab/alpaca', 'ShareGPT': 'RyokoAI/ShareGPT52K'}
 side_bar_title_prefix = "Talky"
 
@@ -68,7 +68,7 @@ side_bar_title_prefix = "Talky"
 # list_datasets = st.cache(list_datasets)
 
 def run_app():
-    state = _get_state()
+    # state = _get_state()
     # Download dataset infos (multiprocessing download)
     # manager = Manager()
     # all_infos = manager.dict()
@@ -81,6 +81,11 @@ def run_app():
         st.session_state['Dialogue'] = []
     if 'Verify_dialogue' not in st.session_state:
         st.session_state['VerifyDialogue'] = []
+    # if 'clicked' not in st.session_state:
+    #     st.session_state.clicked = False
+
+    # def click_button():
+    #     st.session_state.clicked = True
 
     st.set_page_config(page_title="Talky", layout="wide")
     st.sidebar.image('../assets/logo.jpeg')
@@ -102,7 +107,7 @@ def run_app():
         st.title("Format 1")
         st.write("TO BE DEV")
     if mode == "Training a LLM":
-        col1, _, col2 = st.beta_columns([12,1,20])
+        col1, _, col2 = st.columns([12,1,20])
         chat_content = {}
         # 在第一列中放置第一个按钮
         with col1:
@@ -114,7 +119,6 @@ def run_app():
             num_epochs = st.slider('Num Epochs', 1, 10, 3)
             lora_r = st.slider('Lora Rank', 1, 32, 8)
             lora_alpha = st.slider('Lora Alpha', 1, 32, 16)
-            train_button = st.button('Begin to Train 👽')
             model = st.sidebar.selectbox(
                 label="Base Model Selection",
                 options=MODEL_SELECT_OPTION,
@@ -129,12 +133,14 @@ def run_app():
             )
             base_model = MODEL2HF_DCT[model]
             base_dataset = DASET2HF_DCT[dataset]
-            train(base_model = base_model, data_path = base_dataset,
-                  output_dir =  "./output/saved_model", eval_steps = eval_steps, 
-                  save_steps = save_steps, batch_size = batch_size,
-                  num_epochs = num_epochs, learning_rate = 3e-4,
-                  cutoff_len = cutoff_len, lora_r = lora_r,
-                  lora_alpha = lora_alpha)
+            train_button = st.button('Begin to Train 👽')
+            if train_button:
+                train(base_model = base_model, data_path = base_dataset,
+                    output_dir =  "./output/saved_model", eval_steps = eval_steps, 
+                    save_steps = save_steps, batch_size = batch_size,
+                    num_epochs = num_epochs, learning_rate = 3e-4,
+                    cutoff_len = cutoff_len, lora_r = lora_r,
+                    lora_alpha = lora_alpha)
             
     if mode == "Agent Talk":
         topic_list = []
@@ -233,7 +239,7 @@ def run_app():
             st.markdown(md)
 
         # 将页面分割为两列
-        col1, _, col2, col3 = st.beta_columns([6,1,12,12])
+        col1, _, col2, col3 = st.columns([6,1,12,12])
         chat_content = {}
         # 在第一列中放置第一个按钮
         with col1:
@@ -291,13 +297,16 @@ def run_app():
                             st.markdown("#### *AI:*")
                             st.markdown(f'<span style="color:#00FF00">{ai_rsp}</span>', unsafe_allow_html=True)
                             st.markdown("***")
+                            
                             # verify_button = st.button('Begin to Verify No ' + str(cnt+1) + '👾')
-                            # if verify_button:
+                            # # if verify_button:
+                            # if st.session_state.clicked:
                             #     st.markdown("Here begin to do")
                             #     narration_after_verify = verify(line_temp[0], line_temp[1])
                             #     print("0000", narration_after_verify)
-                            #     human_question = narration_after_verify['Question']
-                            #     ai_answer = narration_after_verify['Answer']
+                            #     narration_after_verify = verify(human_rsp, ai_rsp)
+                            #     human_question = human_rsp
+                            #     ai_answer = narration_after_verify
                             #     st.markdown("#### *AI After Verify:*")
                             #     st.markdown("#### *Human:*")
                             #     st.markdown(f'<span style="color:#00FF00">{human_question}</span>', unsafe_allow_html=True)
@@ -366,7 +375,7 @@ def run_app():
                     st.markdown(f'<span style="color:#9ACD32">{ai_rsp}</span>', unsafe_allow_html=True)
                     st.markdown("***")
                         
-    state.sync()
+    # state.sync()
 
 if __name__ == "__main__":
     run_app()
