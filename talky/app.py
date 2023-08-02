@@ -239,7 +239,7 @@ def run_app():
             st.markdown(md)
 
         # 将页面分割为两列
-        col1, _, col2, col3 = st.columns([6,1,12,12])
+        col1, _, col2 = st.columns([6,1,24])
         chat_content = {}
         # 在第一列中放置第一个按钮
         with col1:
@@ -298,20 +298,6 @@ def run_app():
                             st.markdown(f'<span style="color:#00FF00">{ai_rsp}</span>', unsafe_allow_html=True)
                             st.markdown("***")
                             
-                            # verify_button = st.button('Begin to Verify No ' + str(cnt+1) + '👾')
-                            # # if verify_button:
-                            # if st.session_state.clicked:
-                            #     st.markdown("Here begin to do")
-                            #     narration_after_verify = verify(line_temp[0], line_temp[1])
-                            #     print("0000", narration_after_verify)
-                            #     narration_after_verify = verify(human_rsp, ai_rsp)
-                            #     human_question = human_rsp
-                            #     ai_answer = narration_after_verify
-                            #     st.markdown("#### *AI After Verify:*")
-                            #     st.markdown("#### *Human:*")
-                            #     st.markdown(f'<span style="color:#00FF00">{human_question}</span>', unsafe_allow_html=True)
-                            #     st.markdown("#### *AI:*")
-                            #     st.markdown(f'<span style="color:#00FF00">{ai_answer}</span>', unsafe_allow_html=True)
                     st.markdown("***")
                     st.session_state.Dialogue = dialogue_lst
                 else:
@@ -319,19 +305,12 @@ def run_app():
             # verify_button = st.button('Begin to Verify 👾')
             # construct_button = st.button('Begin to Construct 👾')
                 st.write('\n')
-        with col3:
-            st.subheader("Verification")
+            # st.subheader("Verification")
             if verify_button:
                 verify_lst = []
                 for cnt, item in enumerate(st.session_state.Dialogue):
                     human_rsp = item['human']
                     ai_rsp = item['ai']
-                    # with col2:
-                    #     st.markdown("#### *Human:*")
-                    #     st.markdown(f'<span style="color:#DAA520">{human_rsp}</span>', unsafe_allow_html=True)
-                    #     st.markdown("#### *AI:*")
-                    #     st.markdown(f'<span style="color:#00FF00">{ai_rsp}</span>', unsafe_allow_html=True)
-                    #     st.markdown("***")
                     try:
                         narration_after_verify = verify(human_rsp, ai_rsp)
                         # narration_after_verify = eval(narration_after_verify)
@@ -344,15 +323,6 @@ def run_app():
                 print("0000", verify_lst)
                 st.session_state.VerifyDialogue = verify_lst
 
-                # for cnt, item in enumerate(verify_lst):
-                #     human_rsp = item['human']
-                #     ai_rsp = item['ai']
-                #     st.markdown("#### *Human:*")
-                #     st.markdown(f'<span style="color:#DAA520">{human_rsp}</span>', unsafe_allow_html=True)
-                #     st.markdown("#### *AI:*")
-                #     st.markdown(f'<span style="color:#00FFFF">{ai_rsp}</span>', unsafe_allow_html=True)
-                #     st.markdown("***")
-
         # Begin to view
         if verify_button:
             for cnt, item in enumerate(st.session_state.Dialogue):
@@ -364,15 +334,11 @@ def run_app():
                     st.markdown("#### *AI:*")
                     st.markdown(f'<span style="color:#00FF00">{ai_rsp}</span>', unsafe_allow_html=True)
                     st.markdown("***")
-                with col3:
-                    item = st.session_state.VerifyDialogue[cnt]
-                    human_rsp = item['human']
-                    ai_rsp = item['ai']
-                    # ai_rsp = re.search(r"Answer:(.*)", ai_rsp).group(1)
-                    st.markdown("#### *Human:*")
-                    st.markdown(f'<span style="color:#DAA520">{human_rsp}</span>', unsafe_allow_html=True)
-                    st.markdown("#### *AI:*")
-                    st.markdown(f'<span style="color:#9ACD32">{ai_rsp}</span>', unsafe_allow_html=True)
+
+                    item_verified = st.session_state.VerifyDialogue[cnt]
+                    ai_rsp_verified = item_verified['ai']
+                    st.markdown("#### *💡Verifacation:*")
+                    st.markdown(f'<span style="color:#9ACD32">{ai_rsp_verified}</span>', unsafe_allow_html=True)
                     st.markdown("***")
                         
     # state.sync()
