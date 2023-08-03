@@ -34,7 +34,30 @@ def get_infos(all_infos, d_name):
         infos_dict.write_to_directory(foldername)
     all_infos[d_name] = infos_dict
 
-select_options = ["Format 1", "Agent Talk", "Format 2"]
+def get_topic_list(dataset,dataset_key):
+    local_topic_list = []  
+    for item in dataset:
+        print("item:",item)
+        question = item['Question']
+        answer = item['Answer']
+        if question and answer :
+            topic = "Question:" + question +"\n" + "Answer:" + answer
+        elif question and answer == None:
+            topic = "Question:" + question
+        local_topic_list.append(topic)
+    return local_topic_list
+        
+def worker(results,topic_list,max_rounds,max_input_token,user_temperature,ai_temperature,api_key):
+    """The worker function, invoked in a separate process."""
+    chat_content,_ = baize_demo(
+                        topic_list=topic_list, asure=True, max_rounds=max_rounds,
+                        max_input_token=max_input_token, user_temperature=user_temperature, ai_temperature=ai_temperature, api_key = api_key
+                    )
+    results.append(chat_content)
+     
+
+
+select_options = ["Medical Dataset", "Agent Talk"]
 side_bar_title_prefix = "Mimir"
 
 def run_app():
@@ -54,9 +77,152 @@ def run_app():
     st.markdown(
         "<style>" + HtmlFormatter(style="friendly").get_style_defs(".highlight") + "</style>", unsafe_allow_html=True
     )
-    if mode == "Format 1":
-        st.title("Format 1")
-        st.write("TO BE DEV")
+    processes = []
+    # Create a manager object to manage shared data between processes
+    manager = Manager()
+    # Create a list managed by the Manager
+    results = manager.list()
+    
+    if mode == "Medical Dataset":
+        #### exist datasets
+        #dataset_list = list_datasets()
+        #ag_news_index = dataset_list.index("quora")
+        slider = st.sidebar.checkbox('Tune single dataset customly')
+        dataset_list = ["MedQA","MedMCQA","PubMedQA","MMLU Clinical Topics","MedicationQA","LiveQA"]
+        st.title("Medical Dataset")
+        dataset_key = None
+        if slider:
+            dataset_key = st.sidebar.selectbox(
+                "Dataset",
+                dataset_list,
+                key="dataset_select",
+                index=0,
+                help="Select the dataset to work on.",
+            )
+        else:
+            st.subheader("Dataset Setting 💡")
+            selected_options = st.multiselect(
+        "Select one or more medical datasets",
+        dataset_list)
+            st.subheader("Talk Setting 🔦")
+            max_rounds = st.slider('Max Rounds', 0, 100, 1)
+            max_input_token = st.slider('Max Input Tokens', 0, 3000, 100)
+            user_temperature = st.slider('Human Temperature', 0.0, 1.0, 0.1)
+            ai_temperature = st.slider('AI Temperature', 0.0, 1.0, 0.1)
+            api_key = st.text_input("Enter your OpenAI API key:")
+            setting_done = st.button("Begin to process your choosed dataset 🚀 ",)
+            if setting_done:
+                if selected_options:
+                    topic_list = []
+                    for ds_key in selected_options:
+                        if ds_key == "MedicationQA" or ds_key == "MedMCQA" or ds_key == "MedQA" or ds_key == "PubMedQA" or ds_key == "LiveQA":
+                            dataset_path = "./talky/data/"+ ds_key +".json"
+                        elif ds_key == "MMLU Clinical Topics":
+                            dataset_path = "./talky/data/MMLU_clinical_topics.json"
+                        with open(dataset_path, 'r') as json_file:
+                            json_data = json.load(json_file)
+                        temp_topic = get_topic_list(json_data,ds_key)
+                        topic_list += temp_topic
+                else:
+                    st.write("Please select at least one dataset before producing instructions ⏱")        
+                    
+                print(len(topic_list))
+            
+                num_entries = len(json_data)
+                process_num = cpu_count()
+                
+                # We split the dataset into chunks and process each chunk in a separate process:
+                chunk_size = num_entries // process_num  
+                chunks = [json_data[i:i + chunk_size] for i in range(0, len(json_data), chunk_size)]
+
+                st.write("There are "+ str(num_entries)+ " data entries in the your chosen dataset 🌟 \n ")
+                if topic_list:
+                    
+                    # Create processess
+                    for chunk in chunks:
+                        p = Process(target=worker, args=(results,chunk,max_rounds,
+                        max_input_token,user_temperature,ai_temperature,api_key))
+                        processes.append(p)
+                    
+                    # Start the processes
+                    for p in processes:
+                        p.start()
+                        print("Currentky results are: " + str(results.count))
+
+                    # Ensure all processes have finished execution
+                    for p in processes:
+                        p.join()
+                        
+                else:
+                    st.write('Please Input The Topic Or Upload the Topic File')
+                
+            
+        if dataset_key is not None:
+            if dataset_key == "MedicationQA" or dataset_key == "MedMCQA" or dataset_key == "MedQA" or dataset_key == "PubMedQA" or dataset_key == "LiveQA":
+                dataset_path = "./talky/data/"+ dataset_key +".json"
+            elif dataset_key == "MMLU Clinical Topics":
+                dataset_path = "./talky/data/MMLU_clinical_topics.json"
+            # elif :
+            #     dataset_path = "./talky/data/"+dataset_key+".json"
+            with open(dataset_path, 'r') as json_file:
+                json_data = json.load(json_file)
+            # Parse the JSON string to obtain a Python data structure (e.g., list)
+            
+            print(json_data[0])
+                        
+
+            
+            st.header(dataset_key+" 📜")
+            ds_description = datasets_info[dataset_key]["description"]
+            ds_url = datasets_info[dataset_key]["url"]
+            st.write(ds_description)
+            st.markdown("Repo: %s" % ds_url)
+            st.caption("Dataset Viewer")
+            st.dataframe(pd.DataFrame(json_data).head(50))
+            file_contents = pd.DataFrame(json_data)
+            st.download_button(label="Download instruction data processed from "+dataset_key+ " 🔥", data=file_contents.to_csv(), file_name="processed_file.csv")
+            
+            st.header("Dataset Tuning 🔧")
+            st.subheader("Talk Setting")
+            max_rounds = st.slider('Max Rounds', 0, 100, 1)
+            max_input_token = st.slider('Max Input Tokens', 0, 3000, 100)
+            user_temperature = st.slider('Human Temperature', 0.0, 1.0, 0.1)
+            ai_temperature = st.slider('AI Temperature', 0.0, 1.0, 0.1)
+            api_key = st.text_input("Enter your OpenAI API key:")
+            dialogue = ''
+            st.write('\n')
+            setting_done = st.button("Begin to process "+ dataset_key+ " 🚀 ",)
+            if setting_done:
+                topic_list = get_topic_list(json_data,dataset_key)
+                print(len(topic_list))
+            
+                num_entries = len(json_data)
+                process_num = cpu_count()
+                
+                # We split the dataset into chunks and process each chunk in a separate process:
+                chunk_size = num_entries // process_num  
+                chunks = [json_data[i:i + chunk_size] for i in range(0, len(json_data), chunk_size)]
+
+                st.write("There are "+ str(num_entries)+ " data entries in the "+ dataset_key + " 🌟 \n ")
+                if topic_list:
+                    
+                    # Create processes
+                    for chunk in chunks:
+                        p = Process(target=worker, args=(results,chunk,max_rounds,
+                        max_input_token,user_temperature,ai_temperature,api_key))
+                        processes.append(p)
+                    
+                    # Start the processes
+                    for p in processes:
+                        p.start()
+                        print("Currentky results are: " + str(results.count))
+
+                    # Ensure all processes have finished execution
+                    for p in processes:
+                        p.join()
+                        
+                else:
+                    st.write('Please Input The Topic Or Upload the Topic File')
     if mode == "Format 2":
         st.title("Format 2")
         st.write("TO BE DEV")
