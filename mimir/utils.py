@@ -1,11 +1,57 @@
 # coding=utf-8
 import os
-
+import json
 import datasets
 import requests
 
 #from promptsource import DEFAULT_PROMPTSOURCE_CACHE_HOME
 #from promptsource.templates import INCLUDED_USERS
+def save_dict_to_json(data, filename):
+    with open(filename, 'w') as f:
+        json.dump(data, f)
+
+def process_double_agent(temp):
+    data = []
+    for topic in temp:
+        x = temp[topic]
+        x = x.split("[Human]")[1:]
+        if len(x) != 0:
+            s = ""
+            for y in x:
+                if "[AI]" in y:
+                    y = y.split("[AI]")
+                    if len(y) == 2:
+                        s += (
+                                "[|Human|] "
+                                + y[0].strip()
+                                + "\n"
+                                + "[|AI|] "
+                                + y[1].strip()
+                                + "\n"
+                        )
+                    else:
+                        break
+                else:
+                    break
+            if s != "":
+                prompt = "The conversation between human and AI assistant.\n"
+                s = prompt + s + "[|Human|] "
+                data.append({"instruction": topic, "input":'', "output": s})
+    return data
+
+def process_mutil_agent(temp, role_list):
+    data = []
+    person = ','.join(role_list)
+    for key in temp:
+        list_talk = a[key]
+        talk_content = ''
+        for str_person in list_talk:
+            talk_content += str_person
+        if talk_content != "":
+            prompt = "The {} had a conversation.\n".format(person)
+            talk_content = prompt + talk_content
+            data.append({"instruction": key, "input":'', "output": talk_content})
+    return data
 
 
 def removeHyphen(example):

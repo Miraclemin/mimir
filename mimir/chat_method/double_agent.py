@@ -123,7 +123,7 @@ def baize_demo(queue, progress, topic_list, index_list, asure = True, max_rounds
                         stop=["[AI]"],
 
                     )
-                    progress.value += step
+                    # progress.value += step
                 except openai.error.Timeout:
                     print("User Timeout")
                     key_bundle = random.choice(key_bundles)
@@ -159,18 +159,14 @@ def baize_demo(queue, progress, topic_list, index_list, asure = True, max_rounds
                     stop=["[AI]"],
                     temperature=user_temperature,
                 )
-                progress.value += step
+            progress.value += step
             tokens = completion["usage"]["total_tokens"]
             total_tokens += tokens
             response = completion.choices[0].message["content"].replace('\n', ' ')
-            # print("wanghanmin:", response)
-            # print("token:", tokens)
-            # print("**********")
             if len(conversation_state) > 6:
                 #if num_tokens_from_messages(conversation_state, "gpt-35-turbo") > max_input_token:
                 conversation_state.pop(2)
                 conversation_state.pop(3)
-
             conversation_state.append({"role": "user", "content": response})
             conversation_state_total.append({"role": "user", "content": response})
             if asure:
@@ -179,27 +175,20 @@ def baize_demo(queue, progress, topic_list, index_list, asure = True, max_rounds
                     messages=conversation_state,
                     temperature=ai_temperature,
                 )
-
             else:
                 ai_completion = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=conversation_state,
                     temperature=ai_temperature,
                 )
-
             progress.value += step
             ai_tokens = ai_completion["usage"]["total_tokens"]
-            # print("ai_tokens:", ai_tokens)
             total_tokens += ai_tokens
             ai_response = ai_completion["choices"][0]["message"]["content"]
-            # print("gpt:", ai_response)
-            # print("###########")
             instruct += f"\n[Human] {response}\n[AI] {ai_response}"
             conversation_state.append({"role": "assistant", "content": ai_response})
             conversation_state_total.append({"role": "assistant", "content": ai_response})
-        # print(instruct)
         chat_content[query] = instruct.strip()
-        # print("total_tokens", total_tokens)
     queue.put(chat_content)
     return chat_content
 
