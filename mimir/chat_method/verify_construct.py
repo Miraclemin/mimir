@@ -23,10 +23,10 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 import concurrent.futures
 
 openai.api_type = "azure"
-openai.api_base = "https://biocodeeval-openai.openai.azure.com/"
+openai.api_base = "https://gersteinbiocodeeval-eastus2.openai.azure.com/"
 openai.api_version = "2023-05-15"
 # get this API key from the resource (its not inside the OpenAI deployment portal)
-openai.api_key = 'aaccba8e27374383beb397ecdc615ee5' 
+openai.api_key = '31b8638c9eea48709a596501490f9e88' 
 
 key_bundles = [
     ('aaccba8e27374383beb397ecdc615ee5', "https://biocodeeval-openai.openai.azure.com/"),
@@ -72,7 +72,7 @@ def make_narration(instruction=None, *args, **kwargs):
     input_msg = [{"role": "user", "content": input_text}]
 
     try:
-        response = openai.ChatCompletion.create(engine="gpt-35-turbo", messages=input_msg, temperature=temp)
+        response = openai.ChatCompletion.create(engine="gpt-4", messages=input_msg, temperature=temp)
         result = response.choices[0].message["content"]
         return result
         #print(result)

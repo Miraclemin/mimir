@@ -23,7 +23,7 @@ from chat_method.double_agent import *
 from chat_method.mutil_agent import *
 from chat_method.verify_construct import *
 from role.role import *
-# from chat_method.finetune import *
+# from finetune_method.finetune import *
 
 # DATASET_INFOS_CACHE_DIR = os.path.join(DEFAULT_PROMPTSOURCE_CACHE_HOME, "DATASET_INFOS")
 # os.makedirs(DATASET_INFOS_CACHE_DIR, exist_ok=True)
