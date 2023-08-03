@@ -11,6 +11,12 @@ import openai, json, random
 from tenacity import retry, stop_after_attempt, wait_exponential
 import concurrent.futures
 import hashlib
+import sys
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# Get the path of the upper-level directory
+upper_level_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.append(upper_level_dir)
+from conf.config import *
 
 def calculate_md5(input_list):
     # 将列表转换为字符串
@@ -60,19 +66,28 @@ def num_tokens_from_messages(messages, model):
     num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
     return num_tokens
 
-def baize_demo(topic_list, index_list, asure = True, max_rounds = 5, max_input_token = 3000, user_temperature = 0.1, ai_temperature = 0.1):
+def baize_demo(queue, progress, topic_list, index_list, asure = True, max_rounds = 5, max_input_token = 3000, user_temperature = 0.1, ai_temperature = 0.1):
+
     openai.api_key = None
-    openai.api_key = "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"
+# <<<<<<< HEAD:talky/chat_method/baize.py
+    # openai.api_key = "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"
+    # if asure:
+    #     openai.api_type = "azure"
+    #     openai.api_base = "https://biocodeeval-openai.openai.azure.com/"
+    #     openai.api_version = "2023-05-15"
+    #     openai.api_key = 'aaccba8e27374383beb397ecdc615ee5'  # get this API key from the resource (its not inside the OpenAI deployment portal)
+    #     key_bundles = [
+    #         ('aaccba8e27374383beb397ecdc615ee5', "https://biocodeeval-openai.openai.azure.com/"),
+    #         ('3a648cbe477c4c0c8061cbdd0a4b8855', "https://biocodeeval-openai2.openai.azure.com/"),
+    #         ('7864e774f3db4066a54c1979672f316c', "https://biocodeeval-openai3.openai.azure.com/")
+    #     ]
+    openai.api_key = configure["open_ai_api_key"][0]
     if asure:
         openai.api_type = "azure"
-        openai.api_base = "https://biocodeeval-openai.openai.azure.com/"
+        openai.api_base = configure["open_ai_api_base"]
         openai.api_version = "2023-05-15"
-        openai.api_key = 'aaccba8e27374383beb397ecdc615ee5'  # get this API key from the resource (its not inside the OpenAI deployment portal)
-        key_bundles = [
-            ('aaccba8e27374383beb397ecdc615ee5', "https://biocodeeval-openai.openai.azure.com/"),
-            ('3a648cbe477c4c0c8061cbdd0a4b8855', "https://biocodeeval-openai2.openai.azure.com/"),
-            ('7864e774f3db4066a54c1979672f316c', "https://biocodeeval-openai3.openai.azure.com/")
-        ]
+        openai.api_key = configure["open_ai_api_key"][0]  # get this API key from the resource (its not inside the OpenAI deployment portal)
+        key_bundles = configure["key_bundles"]
     total_tokens = 0
     conversation_state = []
     conversation_state_total = []
@@ -105,6 +120,9 @@ def baize_demo(topic_list, index_list, asure = True, max_rounds = 5, max_input_t
         instruct = ""
         time.sleep(0.2)
         error_list = []
+        step = round((100.0 / (len(topic_list) * max_rounds * 2)) * 1.0 / 100, 2)
+        # print(step)
+        # step = 0.1
         for i in range(max_rounds):
             if asure:
                 try:
@@ -117,6 +135,7 @@ def baize_demo(topic_list, index_list, asure = True, max_rounds = 5, max_input_t
                         stop=["[AI]"],
 
                     )
+                    progress.value += step
                 except openai.error.Timeout:
                     print("User Timeout")
                     key_bundle = random.choice(key_bundles)
@@ -129,6 +148,7 @@ def baize_demo(topic_list, index_list, asure = True, max_rounds = 5, max_input_t
                         temperature=user_temperature,
                         stop=["[AI]"],
                     )
+                    # progress.value += step
                     error_info = ("User Timeout", i)
                     error_list.append(error_info)
                     response = completion.choices[0].message["content"].replace('\n', ' ')
@@ -151,6 +171,7 @@ def baize_demo(topic_list, index_list, asure = True, max_rounds = 5, max_input_t
                     stop=["[AI]"],
                     temperature=user_temperature,
                 )
+                progress.value += step
             tokens = completion["usage"]["total_tokens"]
             total_tokens += tokens
             response = completion.choices[0].message["content"].replace('\n', ' ')
@@ -158,9 +179,9 @@ def baize_demo(topic_list, index_list, asure = True, max_rounds = 5, max_input_t
             # print("token:", tokens)
             # print("**********")
             if len(conversation_state) > 6:
-                if num_tokens_from_messages(conversation_state, "gpt-35-turbo") > max_input_token:
-                    conversation_state.pop(2)
-                    conversation_state.pop(3)
+                #if num_tokens_from_messages(conversation_state, "gpt-35-turbo") > max_input_token:
+                conversation_state.pop(2)
+                conversation_state.pop(3)
 
             conversation_state.append({"role": "user", "content": response})
             conversation_state_total.append({"role": "user", "content": response})
@@ -170,12 +191,15 @@ def baize_demo(topic_list, index_list, asure = True, max_rounds = 5, max_input_t
                     messages=conversation_state,
                     temperature=ai_temperature,
                 )
+
             else:
                 ai_completion = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=conversation_state,
                     temperature=ai_temperature,
                 )
+
+            progress.value += step
             ai_tokens = ai_completion["usage"]["total_tokens"]
             # print("ai_tokens:", ai_tokens)
             total_tokens += ai_tokens
@@ -208,9 +232,10 @@ def baize_demo(topic_list, index_list, asure = True, max_rounds = 5, max_input_t
             conversation_state.append({"role": "assistant", "content": ai_response})
             conversation_state_total.append({"role": "assistant", "content": ai_response})
         # print(instruct)
-    chat_content[query] = instruct.strip()
+        chat_content[query] = instruct.strip()
         # print("total_tokens", total_tokens)
-    return chat_content, total_tokens
+    queue.put(chat_content)
+    return chat_content
 
 # if total_tokens >= max_tokens:
 #     break

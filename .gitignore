@@ -1,5 +1,7 @@
+mimir/conf/config.py
 .DS_Store
 .idea
 .git/
-
 __pycache__
+mimir/chat_method/app.py
+talky/*
