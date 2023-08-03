@@ -1,13 +1,11 @@
 import multiprocessing
-import functools
+from multiprocessing import Process, Value, Queue
 from hashlib import sha256
 from multiprocessing import Manager, Pool
 import streamlit as st
 from datasets import get_dataset_infos
 from datasets.info import DatasetInfosDict
 from pygments.formatters import HtmlFormatter
-# from talky import DEFAULT_PROMPTSOURCE_CACHE_HOME
-from session import _get_state
 from utils import (
     get_dataset,
     get_dataset_confs,
@@ -16,22 +14,14 @@ from utils import (
     renameDatasetColumn,
     render_features,
 )
+from conf.config import *
 from chat_method.baize import *
+from chat_method.mutil_agent import *
+from role.role import *
 
-# DATASET_INFOS_CACHE_DIR = os.path.join(DEFAULT_PROMPTSOURCE_CACHE_HOME, "DATASET_INFOS")
-# os.makedirs(DATASET_INFOS_CACHE_DIR, exist_ok=True)
-# Python 3.8 switched the default start method from fork to spawn. OS X also has
-# some issues related to fork, eee, e.g., https://github.com/bigscience-workshop/promptsource/issues/572
-# so we make sure we always use spawn for consistency
 multiprocessing.set_start_method("spawn", force=True)
 
 def get_infos(all_infos, d_name):
-    """
-    Wrapper for mutliprocess-loading of dataset infos
-
-    :param all_infos: multiprocess-safe dictionary
-    :param d_name: dataset name
-    """
     d_name_bytes = d_name.encode("utf-8")
     d_name_hash = sha256(d_name_bytes)
     foldername = os.path.join(DATASET_INFOS_CACHE_DIR, d_name_hash.hexdigest())
@@ -44,31 +34,14 @@ def get_infos(all_infos, d_name):
         infos_dict.write_to_directory(foldername)
     all_infos[d_name] = infos_dict
 
-
 select_options = ["Format 1", "Agent Talk", "Format 2"]
-side_bar_title_prefix = "Talky"
-
-# #
-# # Cache functions
-# #
-# get_dataset = st.cache(allow_output_mutation=True)(get_dataset)
-# get_dataset_confs = st.cache(get_dataset_confs)
-# list_datasets = st.cache(list_datasets)
+side_bar_title_prefix = "Mimir"
 
 def run_app():
-    state = _get_state()
-    # Download dataset infos (multiprocessing download)
-    # manager = Manager()
-    # all_infos = manager.dict()
-    # all_datasets = list(set([t[0] for t in template_collection.keys]))
-    # pool = Pool(processes=multiprocessing.cpu_count())
-    # pool.map(functools.partial(get_infos, all_infos), all_datasets)
-    # pool.close()
-    # pool.join()
-    st.set_page_config(page_title="Talky", layout="wide")
-    st.sidebar.image('./assets/logo.jpeg')
+    st.set_page_config(page_title="mimir", layout="wide")
+    st.sidebar.image('./assets/logo.jpg')
     st.sidebar.markdown(
-        "<center><a href='https://github.com/' style='font-size: 40px;'>Talky\n\n</a></center>",
+        "<center><a href='https://github.com/Miraclemin/mimir' style='font-size: 40px;'>Mimir\n\n</a></center>",
         unsafe_allow_html=True,
     )
     mode = st.sidebar.selectbox(
@@ -106,9 +79,6 @@ def run_app():
                     topic_list.append(item)
             print(topic_list)
             num_topic_file = len(topic_list)
-        #### exist datasets
-        #dataset_list = list_datasets()
-        #ag_news_index = dataset_list.index("quora")
         slider = st.sidebar.checkbox('Enable Exists Datasets')
         dataset_key = None
         if slider:
@@ -184,12 +154,15 @@ def run_app():
             st.markdown(md)
 
         # 将页面分割为两列
-        col1, _, col2 = st.beta_columns([12,1,12])
+        col1, _, col2 = st.columns([12,1,12])
         chat_content = {}
         # 在第一列中放置第一个按钮
+        progress = Value('d', 0.0)
+        place_text = st.text("")
+        queue = Queue()
         with col1:
             st.subheader("Talk Setting")
-            max_rounds = st.slider('Max Rounds', 0, 100, 1)
+            max_rounds = st.slider('Max Rounds', 0, 10, 1)
             max_input_token = st.slider('Max Input Tokens', 0, 3000, 100)
             user_temperature = st.slider('Human Temperature', 0.0, 1.0, 0.1)
             ai_temperature = st.slider('AI Temperature', 0.0, 1.0, 0.1)
@@ -204,38 +177,113 @@ def run_app():
                     # st.markdown(f'<span style="color:#DAA528"> {topic_str} </span>', unsafe_allow_html=True)
             dialogue = ''
             st.write('\n')
+            slider_advanced_setting = st.checkbox('Advanced Setting 🔧')
+            picked_roles = []
+            role_prompt = {}
+            if slider_advanced_setting:
+                Roles = Role('./talky/role/role.json')
+                all_roles = Roles.all_roles_name
+                role_prompt = Roles.all_roles
+                # st.write(all_roles)
+                num_agents = st.slider('Number of Agents', 2, len(all_roles), 1)
+                for index in range(num_agents):
+                    variable_name = "Agent_" + str(index)
+                    globals()[variable_name] = st.selectbox(
+                                                    " ".join(variable_name.split("_")),
+                                                    all_roles,
+                                                    key="roles_select" + variable_name,
+                                                    index=0,
+                                                    help="Select the roles to work on.",
+                    )
+                    picked_roles.append(globals()[variable_name])
+                    st.markdown(f'<span style="font-size: 15px; color: Green;"><i><b>{Roles.all_roles[globals()[variable_name]]}</i></b></span>', unsafe_allow_html=True)
+
+            st.write('\n')
             setting_done = st.button('Begin to Talk Demo  🚀')
             if setting_done:
                 if topic:
                     topic_list.append(topic)
                 if topic_list:
-                    chat_content, total_tokens = baize_demo(
-                        topic_list, index_list, asure=True, max_rounds=max_rounds,
-                        max_input_token=max_input_token, user_temperature=user_temperature, ai_temperature=ai_temperature
-                    )
+                    if slider_advanced_setting and len(picked_roles) != 0:
+                        progress_bar = st.progress(0.0)
+                        process = Process(target=mutil_agent, args=(queue,
+                                                                    progress,
+                                                                    topic_list,
+                                                                    index_list,
+                                                                    picked_roles,
+                                                                    role_prompt,
+                                                                    configure["memory_limit"],
+                                                                    configure["azure"],
+                                                                    max_rounds,
+                                                                    max_input_token,
+                                                                    user_temperature,
+                                                                    ai_temperature))
+                        process.start()
+                        while process.is_alive():
+                            if progress.value >= 1:
+                                break
+                            progress_bar.progress(progress.value)
+                            place_text.text(f"Progress: {progress.value}%")
+                        chat_content = queue.get()
+                        process.join()
+                        st.write("Finished！")
+                        # chat_content = mutil_agent(topic_list, index_list, picked_roles = picked_roles,
+                            #role_prompt = role_prompt, MEMORY_LIMIT = configure["memory_limit"],
+                            #asure = configure["azure"], max_rounds = max_rounds, max_input_token = max_input_token,
+                            #user_temperature = user_temperature, ai_temperature=ai_temperature
+                         #)
+                    else:
+                        progress_bar = st.progress(0.0)
+                        process = Process(target=baize_demo, args=(queue,
+                                                                   progress,
+                                                                   topic_list,
+                                                                   index_list,
+                                                                   configure["azure"],
+                                                                   max_rounds,
+                                                                   max_input_token,
+                                                                   user_temperature,
+                                                                   ai_temperature))
+                        process.start()
+                        while process.is_alive():
+                            if progress.value >= 1:
+                                break
+                            progress_bar.progress(progress.value)
+                            place_text.text(f"Progress: {progress.value}%")
+                        chat_content = queue.get()
+                        process.join()
+                        st.write("Finished！")
                 else:
                     st.write('Please Input The Topic Or Upload the Topic File')
         with col2:
             if setting_done:
                 st.subheader("Talk Demo")
+                # st.progress(_process)
                 if len(chat_content):
                     for key, value in chat_content.items():
                         topic_str = "#### *Topic:* " + key
                         st.markdown(topic_str)
-                        lines = value.split('[Human]')
-                        for line in lines:
-                            if len(line) > 0:
-                                line_temp = line.split('[AI]')
-                                st.markdown("#### *Human:*")
-                                st.markdown(f'<span style="color:#DAA520">{line_temp[0]}</span>', unsafe_allow_html=True)
-                                st.markdown("#### *AI:*")
-                                st.markdown(f'<span style="color:#00FF00">{line_temp[1]}</span>', unsafe_allow_html=True)
-                                st.markdown("***")
+                        if slider_advanced_setting and len(picked_roles) != 0:
+                            # Processing the dialogue
+                                for response in value:
+                                    name = response.split(':')[0]
+                                    res_content = " ".join(response.split(':')[1:])
+                                    st.markdown(f"#### *{name}:*")
+                                    st.markdown(f'<span style="color:#DAA520">{res_content}</span>',
+                                                unsafe_allow_html=True)
+                        else:
+                            lines = value.split('[Human]')
+                            for line in lines:
+                                if len(line) > 0:
+                                    line_temp = line.split('[AI]')
+                                    st.markdown("#### *Human:*")
+                                    st.markdown(f'<span style="color:#DAA520">{line_temp[0]}</span>', unsafe_allow_html=True)
+                                    st.markdown("#### *AI:*")
+                                    st.markdown(f'<span style="color:#00FF00">{line_temp[1]}</span>', unsafe_allow_html=True)
+                                    st.markdown("***")
                 else:
                     st.write('Error in the talking generation')
                 st.write('\n')
                 file_process = st.button('Begin to Process file ♻️')
-    state.sync()
 
 if __name__ == "__main__":
     run_app()

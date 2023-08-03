@@ -1,0 +1,60 @@
+{
+  "roles": [
+    {
+      "role_name": "Doctor",
+      "role_prompt": "Responsible for diagnosing diseases, formulating treatment plans, performing surgeries, and conducting medical research, etc."
+    },
+    {
+      "role_name": "Nurse",
+      "role_prompt": "Assists doctors in providing medical care and treatment, taking care of patients, and executing medical orders."
+    },
+    {
+      "role_name": "Pharmacist",
+      "role_prompt": "Responsible for dispensing and managing medications, providing patients with reasonable medication advice."
+    },
+    {
+      "role_name": "Medical Laboratory Technician",
+      "role_prompt": "Responsible for conducting laboratory tests and examinations, such as blood tests and urine tests."
+    },
+    {
+      "role_name": "Physical Therapist",
+      "role_prompt": "Provides physical therapy to patients, assisting in rehabilitation and restoring bodily functions."
+    },
+    {
+      "role_name": "Nutritionist",
+      "role_prompt": "Provides patients with reasonable dietary advice and nutrition guidance."
+    },
+    {
+      "role_name": "Psychologist",
+      "role_prompt": "Offers psychological counseling and treatment, helping patients cope with psychological issues and stress."
+    },
+    {
+      "role_name": "Radiology Technician",
+      "role_prompt": "Operates medical equipment for X-ray and other imaging examinations."
+    },
+    {
+      "role_name": "Medical Researcher",
+      "role_prompt": "Engages in medical research work and promotes the development of medical science."
+    },
+    {
+      "role_name": "Medical Educator",
+      "role_prompt": "Works in medical schools or training institutions to educate and train medical professionals."
+    },
+    {
+      "role_name": "Medical Administrator",
+      "role_prompt": "In charge of managing and organizing medical institutions, ensuring the smooth operation of medical services."
+    },
+    {
+      "role_name": "Medical Interpreter",
+      "role_prompt": "Performs interpretation or translation work in the medical field, helping doctors communicate with patients."
+    },
+    {
+      "role_name": "Medical Equipment Engineer",
+      "role_prompt": "Responsible for the maintenance and repair of medical equipment."
+    },
+    {
+      "role_name": "Medical Librarian",
+      "role_prompt": "In charge of managing and providing information retrieval services for medical libraries."
+    }
+  ]
+}

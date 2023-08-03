@@ -1,0 +1,5 @@
+mimir/conf/config.py
+.DS_Store
+.idea
+.git/
+__pycache__
