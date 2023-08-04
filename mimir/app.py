@@ -161,7 +161,6 @@ def run_app():
                     st.write("Please select at least one dataset before producing instructions ⏱")        
                     
                 print(len(topic_list))
-            
                 num_entries = len(json_data)
                 process_num = cpu_count()
                 
