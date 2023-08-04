@@ -3,3 +3,5 @@ mimir/conf/config.py
 .idea
 .git/
 __pycache__
+mimir/chat_method/app.py
+talky/*

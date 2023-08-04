@@ -69,6 +69,18 @@ def num_tokens_from_messages(messages, model):
 def baize_demo(queue, progress, topic_list, index_list, asure = True, max_rounds = 5, max_input_token = 3000, user_temperature = 0.1, ai_temperature = 0.1):
 
     openai.api_key = None
+# <<<<<<< HEAD:talky/chat_method/baize.py
+    # openai.api_key = "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"
+    # if asure:
+    #     openai.api_type = "azure"
+    #     openai.api_base = "https://biocodeeval-openai.openai.azure.com/"
+    #     openai.api_version = "2023-05-15"
+    #     openai.api_key = 'aaccba8e27374383beb397ecdc615ee5'  # get this API key from the resource (its not inside the OpenAI deployment portal)
+    #     key_bundles = [
+    #         ('aaccba8e27374383beb397ecdc615ee5', "https://biocodeeval-openai.openai.azure.com/"),
+    #         ('3a648cbe477c4c0c8061cbdd0a4b8855', "https://biocodeeval-openai2.openai.azure.com/"),
+    #         ('7864e774f3db4066a54c1979672f316c', "https://biocodeeval-openai3.openai.azure.com/")
+    #     ]
     openai.api_key = configure["open_ai_api_key"][0]
     if asure:
         openai.api_type = "azure"
@@ -186,6 +198,28 @@ def baize_demo(queue, progress, topic_list, index_list, asure = True, max_rounds
             total_tokens += ai_tokens
             ai_response = ai_completion["choices"][0]["message"]["content"]
             instruct += f"\n[Human] {response}\n[AI] {ai_response}"
+            """
+            instruction_1 =
+"            Evaluate the validity of a QA pair in the format of (Q: xxx, A: xxx). If the pair is objectively reasonable, return it as is. If the pair is not objectively reasonable, optimize the Q and A separately before returning.
+"            bjective: The goal of this task is to ensure that the QA pairs provided are valid and make sense. This is important for applications such as chatbots, virtual assistants, and automated customer service systems, where accurate and useful responses are crucial.
+"            Criteria for a reasonable QA pair: A reasonable QA pair should have a clear and specific question (Q) that can be answered with a relevant and accurate answer (A). The question should not be ambiguous or vague, and the answer should directly address the question asked. Additionally, the answer should not be misleading or incorrect.
+"            Optimization process: If the QA pair is not objectively reasonable, the Q and A should be optimized separately. For the Q, rephrase the question to make it clearer and more specific. For the A, provide a more accurate and relevant answer that directly addresses the question asked. The optimized Q and A should still be related to each other and make sense as a pair.
+"            Example of a reasonable QA pair: 
+"            (Q: What is the capital of France?, A: Paris)
+"            Example of an unreasonable QA pair: 
+"            (Q: How do I make a cake?, A: Blue) 
+"            I hope this helps! Let me know if you have any further questions.
+"
+            messages=[{"role": "user", "content": instruction_1 + 'Q: ' + response + 'A: ' + ai_response + "\n[Human] "}
+                        ]
+            completion = openai.ChatCompletion.create(
+                        engine="gpt-35-turbo",
+                        messages=message
+                        temperature=user_temperature,
+                        stop=["[AI]"],
+
+                    )
+            """
             conversation_state.append({"role": "assistant", "content": ai_response})
             conversation_state_total.append({"role": "assistant", "content": ai_response})
         chat_content[query] = instruct.strip()
