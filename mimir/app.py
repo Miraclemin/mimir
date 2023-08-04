@@ -215,11 +215,6 @@ def run_app():
             with open(dataset_path, 'r') as json_file:
                 json_data = json.load(json_file)
             # Parse the JSON string to obtain a Python data structure (e.g., list)
-            
-            print(json_data[0])
-                        
-
-            
             st.header(dataset_key+" 📜")
             ds_description = datasets_info[dataset_key]["description"]
             ds_url = datasets_info[dataset_key]["url"]
