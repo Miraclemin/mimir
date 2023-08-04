@@ -24,8 +24,10 @@ from chat_method.verify_construct import *
 from role.role import *
 # from finetune_method.finetune import *
 
+
 multiprocessing.set_start_method("spawn", force=True)
 side_bar_title_prefix = "Mimir"
+
 
 def get_topic_list(dataset,dataset_key):
     local_topic_list = []  
@@ -218,7 +220,6 @@ def run_app():
             user_temperature = st.slider('Human Temperature', 0.0, 1.0, 0.1)
             ai_temperature = st.slider('AI Temperature', 0.0, 1.0, 0.1)
             api_key = st.text_input("Enter your OpenAI API key:")
-            dialogue = ''
             st.write('\n')
             setting_done = st.button("Begin to process "+ dataset_key+ " 🚀 ",)
             if setting_done:
@@ -281,7 +282,6 @@ def run_app():
         place_text = st.text("")
         queue = Queue()
         with col1:
-
             st.subheader("Talk Setting")
             max_rounds = st.slider('Max Rounds', 0, 10, 1)
             max_input_token = st.slider('Max Input Tokens', 0, 3000, 100)
@@ -296,8 +296,6 @@ def run_app():
                     topic_str = "##### *Topic:* " + topic_item
                     st.markdown(topic_str)
                     st.markdown("***")
-                    # st.markdown(f'<span style="color:#DAA528"> {topic_str} </span>', unsafe_allow_html=True)
-            dialogue = ''
             st.write('\n')
             slider_advanced_setting = st.checkbox('Advanced Setting 🔧')
             picked_roles = []
@@ -306,7 +304,6 @@ def run_app():
                 Roles = Role('./mimir/role/role.json')
                 all_roles = Roles.all_roles_name
                 role_prompt = Roles.all_roles
-                # st.write(all_roles)
                 num_agents = st.slider('Number of Agents', 2, len(all_roles), 1)
                 for index in range(num_agents):
                     variable_name = "Agent_" + str(index)
@@ -319,7 +316,6 @@ def run_app():
                     )
                     picked_roles.append(globals()[variable_name])
                     st.markdown(f'<span style="font-size: 15px; color: Green;"><i><b>{Roles.all_roles[globals()[variable_name]]}</i></b></span>', unsafe_allow_html=True)
-
             st.write('\n')
             setting_done = st.button('Begin to Talk Demo  🚀')
             verify_button = st.button('Begin to Verify 👾')
@@ -346,12 +342,10 @@ def run_app():
                                 break
                             progress_bar.progress(progress.value)
                             place_text.text(f"Progress: {progress.value}%")
-
                         progress_bar.progress(1.0)
                         place_text.text("Progress: 1.00 %")
                         chat_content = queue.get()
                         process.join()
-                        # print(chat_content)
                         st.write("Finished！")
                     else:
                         progress_bar = st.progress(0.0)
@@ -416,7 +410,6 @@ def run_app():
                 else:
                     st.write('Error in the talking generation')
                 st.write('\n')
-
             if verify_button:
                 verify_lst = []
                 for cnt, item in enumerate(st.session_state.Dialogue):
@@ -424,13 +417,11 @@ def run_app():
                     ai_rsp = item['ai']
                     try:
                         narration_after_verify = verify(human_rsp, ai_rsp)
-                        # narration_after_verify = eval(narration_after_verify)
                         verify_lst.append({'human': human_rsp, 
                                     'ai': narration_after_verify})
                     except:
                         narration_after_verify = ai_rsp
                         verify_lst.append({'human': human_rsp, 'ai': ai_rsp})
-                    
                 st.session_state.VerifyDialogue = verify_lst
 
             file_process = st.button('Begin to Process file ♻️')
@@ -457,7 +448,6 @@ def run_app():
                             break
                         progress_bar.progress(progress.value)
                         place_text.text(f"Progress: {progress.value}%")
-
                     progress_bar.progress(1.0)
                     place_text.text("Progress: 1.00 %")
                     chat_content = queue.get()
@@ -471,7 +461,6 @@ def run_app():
                         data = f.read()
                     st.download_button(label='Click to Download', data=data, file_name='data.json',
                                        mime='application/json')
-
                 else:
                     progress_bar = st.progress(0.0)
                     process = Process(target=baize_demo, args=(queue,
@@ -506,7 +495,6 @@ def run_app():
                                        mime='application/json')
             else:
                 st.write('Please Upload the Topic File!')
-
         # Begin to view
         if verify_button:
             for cnt, item in enumerate(st.session_state.Dialogue):
@@ -518,14 +506,11 @@ def run_app():
                     st.markdown("#### *AI:*")
                     st.markdown(f'<span style="color:#00FF00">{ai_rsp}</span>', unsafe_allow_html=True)
                     st.markdown("***")
-
                     item_verified = st.session_state.VerifyDialogue[cnt]
                     ai_rsp_verified = item_verified['ai']
                     st.markdown("#### *💡Verifacation:*")
                     st.markdown(f'<span style="color:#9ACD32">{ai_rsp_verified}</span>', unsafe_allow_html=True)
                     st.markdown("***")
-
-
 
 
 if __name__ == "__main__":
