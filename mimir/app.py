@@ -27,21 +27,6 @@ from role.role import *
 multiprocessing.set_start_method("spawn", force=True)
 side_bar_title_prefix = "Mimir"
 
-
-def get_infos(all_infos, d_name):
-    d_name_bytes = d_name.encode("utf-8")
-    d_name_hash = sha256(d_name_bytes)
-    foldername = os.path.join(DATASET_INFOS_CACHE_DIR, d_name_hash.hexdigest())
-    if os.path.isdir(foldername):
-        infos_dict = DatasetInfosDict.from_directory(foldername)
-    else:
-        infos = get_dataset_infos(d_name)
-        infos_dict = DatasetInfosDict(infos)
-        os.makedirs(foldername)
-        infos_dict.write_to_directory(foldername)
-    all_infos[d_name] = infos_dict
-
-
 def get_topic_list(dataset,dataset_key):
     local_topic_list = []  
     for item in dataset:
@@ -131,6 +116,7 @@ def run_app():
                     num_epochs = num_epochs, learning_rate = 3e-4,
                     cutoff_len = cutoff_len, lora_r = lora_r,
                     lora_alpha = lora_alpha)
+
     if mode == "Medical Dataset":
         #### exist datasets
         #dataset_list = list_datasets()
@@ -215,11 +201,6 @@ def run_app():
             with open(dataset_path, 'r') as json_file:
                 json_data = json.load(json_file)
             # Parse the JSON string to obtain a Python data structure (e.g., list)
-            
-            print(json_data[0])
-                        
-
-            
             st.header(dataset_key+" 📜")
             ds_description = datasets_info[dataset_key]["description"]
             ds_url = datasets_info[dataset_key]["url"]
@@ -398,10 +379,8 @@ def run_app():
                 else:
                     st.write('Please Input The Topic Or Upload the Topic File')
         with col2:
-            st.subheader("Generation")
             if setting_done:
                 st.subheader("Talk Demo")
-                # st.progress(_process)
                 if len(chat_content):
                     for key, value in chat_content.items():
                         topic_str = "#### *Topic:* " + key
@@ -437,6 +416,7 @@ def run_app():
                 else:
                     st.write('Error in the talking generation')
                 st.write('\n')
+
             if verify_button:
                 verify_lst = []
                 for cnt, item in enumerate(st.session_state.Dialogue):
@@ -452,6 +432,80 @@ def run_app():
                         verify_lst.append({'human': human_rsp, 'ai': ai_rsp})
                     
                 st.session_state.VerifyDialogue = verify_lst
+
+            file_process = st.button('Begin to Process file ♻️')
+            progress = Value('d', 0.0)
+            place_text = st.text("")
+            if uploaded_file and file_process and len(topic_file_list) != 0:
+                if slider_advanced_setting and len(picked_roles) != 0:
+                    progress_bar = st.progress(0.0)
+                    process = Process(target=mutil_agent, args=(queue,
+                                                                progress,
+                                                                topic_file_list,
+                                                                index_list,
+                                                                picked_roles,
+                                                                role_prompt,
+                                                                configure["memory_limit"],
+                                                                configure["azure"],
+                                                                max_rounds,
+                                                                max_input_token,
+                                                                user_temperature,
+                                                                ai_temperature))
+                    process.start()
+                    while process.is_alive():
+                        if progress.value >= 1:
+                            break
+                        progress_bar.progress(progress.value)
+                        place_text.text(f"Progress: {progress.value}%")
+
+                    progress_bar.progress(1.0)
+                    place_text.text("Progress: 1.00 %")
+                    chat_content = queue.get()
+                    process.join()
+                    st.write("Finished！")
+                    ### multiagent processing
+                    date_download = []
+                    date_download = process_mutil_agent(chat_content, picked_roles)
+                    save_dict_to_json(date_download, 'data.json')
+                    with open('data.json', 'r') as f:
+                        data = f.read()
+                    st.download_button(label='Click to Download', data=data, file_name='data.json',
+                                       mime='application/json')
+
+                else:
+                    progress_bar = st.progress(0.0)
+                    process = Process(target=baize_demo, args=(queue,
+                                                               progress,
+                                                               topic_file_list,
+                                                               index_list,
+                                                               configure["azure"],
+                                                               max_rounds,
+                                                               max_input_token,
+                                                               user_temperature,
+                                                               ai_temperature))
+                    process.start()
+                    while process.is_alive():
+                        if progress.value >= 1:
+                            break
+                        progress_bar.progress(progress.value)
+                        place_text.text(f"Progress: {progress.value}%")
+
+                    progress_bar.progress(1.0)
+                    place_text.text("Progress: 1.00 %")
+                    chat_content = queue.get()
+                    process.join()
+                    st.write("Finished！")
+                    #### double agent processing
+                    date_download = []
+                    date_download = process_double_agent(chat_content)
+                    # print(date_download)
+                    save_dict_to_json(date_download, 'data.json')
+                    with open('data.json', 'r') as f:
+                        data = f.read()
+                    st.download_button(label='Click to Download', data=data, file_name='data.json',
+                                       mime='application/json')
+            else:
+                st.write('Please Upload the Topic File!')
 
         # Begin to view
         if verify_button:
@@ -470,80 +524,8 @@ def run_app():
                     st.markdown("#### *💡Verifacation:*")
                     st.markdown(f'<span style="color:#9ACD32">{ai_rsp_verified}</span>', unsafe_allow_html=True)
                     st.markdown("***")
-                        
-                file_process = st.button('Begin to Process file ♻️')
-                progress = Value('d', 0.0)
-                place_text = st.text("")
-                if uploaded_file and file_process and len(topic_file_list) != 0:
-                    if slider_advanced_setting and len(picked_roles) != 0:
-                        progress_bar = st.progress(0.0)
-                        process = Process(target=mutil_agent, args=(queue,
-                                                                    progress,
-                                                                    topic_file_list,
-                                                                    index_list,
-                                                                    picked_roles,
-                                                                    role_prompt,
-                                                                    configure["memory_limit"],
-                                                                    configure["azure"],
-                                                                    max_rounds,
-                                                                    max_input_token,
-                                                                    user_temperature,
-                                                                    ai_temperature))
-                        process.start()
-                        while process.is_alive():
-                            if progress.value >= 1:
-                                break
-                            progress_bar.progress(progress.value)
-                            place_text.text(f"Progress: {progress.value}%")
 
-                        progress_bar.progress(1.0)
-                        place_text.text("Progress: 1.00 %")
-                        chat_content = queue.get()
-                        process.join()
-                        st.write("Finished！")
-                        ### multiagent processing
-                        date_download = []
-                        date_download = process_mutil_agent(chat_content, picked_roles)
-                        save_dict_to_json(date_download, 'data.json')
-                        with open('data.json', 'r') as f:
-                            data = f.read()
-                        st.download_button(label='Click to Download', data=data, file_name='data.json',
-                                        mime='application/json')
 
-                    else:
-                        progress_bar = st.progress(0.0)
-                        process = Process(target=baize_demo, args=(queue,
-                                                                progress,
-                                                                topic_file_list,
-                                                                index_list,
-                                                                configure["azure"],
-                                                                max_rounds,
-                                                                max_input_token,
-                                                                user_temperature,
-                                                                ai_temperature))
-                        process.start()
-                        while process.is_alive():
-                            if progress.value >= 1:
-                                break
-                            progress_bar.progress(progress.value)
-                            place_text.text(f"Progress: {progress.value}%")
-
-                        progress_bar.progress(1.0)
-                        place_text.text("Progress: 1.00 %")
-                        chat_content = queue.get()
-                        process.join()
-                        st.write("Finished！")
-                        #### double agent processing
-                        date_download = []
-                        date_download = process_double_agent(chat_content)
-                        # print(date_download)
-                        save_dict_to_json(date_download, 'data.json')
-                        with open('data.json', 'r') as f:
-                            data = f.read()
-                        st.download_button(label='Click to Download', data=data, file_name='data.json',
-                                        mime='application/json')
-                else:
-                    st.write('Please Upload the Topic File!')
 
 
 if __name__ == "__main__":
