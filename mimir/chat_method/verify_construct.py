@@ -17,7 +17,7 @@ ROOT = Path(__file__).absolute().parents[1]
 sys.path.append(str(ROOT))
 
 import json
-from config.instruction_config import INSTRUCTION_VERIFY
+from conf.instruction_config import INSTRUCTION_VERIFY
 import openai, json, random
 from tenacity import retry, stop_after_attempt, wait_exponential
 import concurrent.futures
