@@ -121,7 +121,7 @@ def run_app():
         # fetch current dataset
         # medical_datasets = fetch_medical_datasets()
         slider = st.sidebar.checkbox('Tune single dataset customly')
-        show_data_link()
+        
         dataset_list = ["MedQA","MedMCQA","PubMedQA","MMLU Clinical Topics","MedicationQA","LiveQA"]
         st.title("Medical Dataset")
         dataset_key = None
@@ -133,9 +133,8 @@ def run_app():
                 index=0,
                 help="Select the dataset to work on.",
             )
-        
         else:
-    
+            show_data_link()
             st.subheader("Dataset Setting 💡")
             selected_options = st.multiselect(
         "Select one or more medical datasets",
