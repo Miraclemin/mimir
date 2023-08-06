@@ -120,8 +120,10 @@ def run_app():
                       lora_alpha = lora_alpha)
         with col2:
             st.subheader("Shell to train YOUR OWN LLM!!!")
-            txt = st.text_area('Shell command', 
-                               f"python finetune.py --base_model {base_model} --data_path {base_dataset} --output_dir ./output/saved_model --batch_size {batch_size} --num_epochs {num_epochs} --learning_rate 5e-5 --cutoff_len {cutoff_len} --val_set_size 2000 --lora_r {lora_r} --lora_alpha {lora_alpha} --lora_dropout 0.05 --lora_target_modules '[q_proj,v_proj]' --train_on_inputs")
+            shell_button = st.button('Begin to Generate shell command👽')
+            if shell_button:
+                txt = st.text_area('Shell command', 
+                                   f"python finetune.py --base_model {base_model} --data_path {base_dataset} --output_dir ./output/saved_model --batch_size {batch_size} --num_epochs {num_epochs} --learning_rate 5e-5 --cutoff_len {cutoff_len} --val_set_size 2000 --lora_r {lora_r} --lora_alpha {lora_alpha} --lora_dropout 0.05 --lora_target_modules '[q_proj,v_proj]' --train_on_inputs")
 
     if mode == "Medical Dataset":
         #### exist datasets
