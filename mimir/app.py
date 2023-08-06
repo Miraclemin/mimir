@@ -31,7 +31,6 @@ side_bar_title_prefix = "Mimir"
 def get_topic_list(dataset,dataset_key):
     local_topic_list = []  
     for item in dataset:
-        print("item:",item)
         question = item['Question']
         answer = item['Answer']
         if question and answer :
@@ -161,7 +160,6 @@ def run_app():
                 else:
                     st.write("Please select at least one dataset before producing instructions ⏱")        
                     
-                print(len(topic_list))
                 num_entries = len(json_data)
                 process_num = cpu_count()
                 
@@ -222,7 +220,6 @@ def run_app():
             setting_done = st.button("Begin to process "+ dataset_key+ " 🚀 ",)
             if setting_done:
                 topic_list = get_topic_list(json_data,dataset_key)
-                print(len(topic_list))
             
                 num_entries = len(json_data)
                 process_num = cpu_count()
