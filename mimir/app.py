@@ -1,15 +1,14 @@
-#!/usr/bin/env python
-# -*- encoding: utf-8 -*-
-
 import multiprocessing
 from multiprocessing import Process, Value, Queue
 from hashlib import sha256
-from multiprocessing import Manager, Pool
+from multiprocessing import Manager, Pool, cpu_count
 import streamlit as st
+import pandas as pd
 import re
 from datasets import get_dataset_infos
 from datasets.info import DatasetInfosDict
 from pygments.formatters import HtmlFormatter
+from data.dataset_info import datasets_info
 from utils import (
     process_double_agent,
     process_mutil_agent,
@@ -194,9 +193,9 @@ def run_app():
             
         if dataset_key is not None:
             if dataset_key == "MedicationQA" or dataset_key == "MedMCQA" or dataset_key == "MedQA" or dataset_key == "PubMedQA" or dataset_key == "LiveQA":
-                dataset_path = "./talky/data/"+ dataset_key +".json"
+                dataset_path = "./mimir/data/"+ dataset_key +".json"
             elif dataset_key == "MMLU Clinical Topics":
-                dataset_path = "./talky/data/MMLU_clinical_topics.json"
+                dataset_path = "./mimir/data/MMLU_clinical_topics.json"
             # elif :
             #     dataset_path = "./talky/data/"+dataset_key+".json"
             with open(dataset_path, 'r') as json_file:
