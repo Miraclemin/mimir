@@ -15,8 +15,8 @@ from utils import (
     process_mutil_agent,
     save_dict_to_json
 )
-from config.instruction_config import *
-from config.options_config import *
+from conf.instruction_config import *
+from conf.options_config import *
 from conf.config import *
 from chat_method.double_agent import *
 from chat_method.mutil_agent import *
@@ -113,11 +113,15 @@ def run_app():
             train_button = st.button('Begin to Train 👽')
             if train_button:
                 train(base_model = base_model, data_path = base_dataset,
-                    output_dir =  "./output/saved_model", eval_steps = eval_steps, 
-                    save_steps = save_steps, batch_size = batch_size,
-                    num_epochs = num_epochs, learning_rate = 3e-4,
-                    cutoff_len = cutoff_len, lora_r = lora_r,
-                    lora_alpha = lora_alpha)
+                      output_dir =  "./output/saved_model", eval_steps = eval_steps, 
+                      save_steps = save_steps, batch_size = batch_size,
+                      num_epochs = num_epochs, learning_rate = 5e-5,
+                      cutoff_len = cutoff_len, lora_r = lora_r,
+                      lora_alpha = lora_alpha)
+        with col2:
+            st.subheader("Shell to train YOUR OWN LLM!!!")
+            txt = st.text_area('Shell command', 
+                               f"python finetune.py --base_model {base_model} --data_path {base_dataset} --output_dir ./output/saved_model --batch_size {batch_size} --num_epochs {num_epochs} --learning_rate 5e-5 --cutoff_len {cutoff_len} --val_set_size 2000 --lora_r {lora_r} --lora_alpha {lora_alpha} --lora_dropout 0.05 --lora_target_modules '[q_proj,v_proj]' --train_on_inputs")
 
     if mode == "Medical Dataset":
         #### exist datasets
