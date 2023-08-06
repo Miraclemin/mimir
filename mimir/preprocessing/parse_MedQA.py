@@ -21,6 +21,6 @@ for data in parsed_data:
     del data['answer']
 
 # Step 4: Write to a new JSON file
-output_file_path = './talky/data/MedQA_new.json'
+output_file_path = '../data/MedQA_new.json'
 with open(output_file_path, 'w') as output_file:
     json.dump(parsed_data, output_file, indent=2)
