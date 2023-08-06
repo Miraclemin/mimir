@@ -157,9 +157,9 @@ def run_app():
                     topic_list = []
                     for ds_key in selected_options:
                         if ds_key == "MedicationQA" or ds_key == "MedMCQA" or ds_key == "MedQA" or ds_key == "PubMedQA" or ds_key == "LiveQA":
-                            dataset_path = "./talky/data/"+ ds_key +".json"
+                            dataset_path = "./mimir/data/"+ ds_key +".json"
                         elif ds_key == "MMLU Clinical Topics":
-                            dataset_path = "./talky/data/MMLU_clinical_topics.json"
+                            dataset_path = "./mimir/data/MMLU_clinical_topics.json"
                         with open(dataset_path, 'r') as json_file:
                             json_data = json.load(json_file)
                         temp_topic = get_topic_list(json_data,ds_key)
