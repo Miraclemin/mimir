@@ -8,7 +8,7 @@ import re
 from datasets import get_dataset_infos
 from datasets.info import DatasetInfosDict
 from pygments.formatters import HtmlFormatter
-from data.dataset_info import datasets_info
+from config.dataset_info_config import datasets_info,fetch_medical_datasets,fetch_datasets,fetch_datasets_demo,show_data_link
 from utils import (
     process_double_agent,
     process_mutil_agent,
@@ -31,7 +31,6 @@ side_bar_title_prefix = "Mimir"
 def get_topic_list(dataset,dataset_key):
     local_topic_list = []  
     for item in dataset:
-        print("item:",item)
         question = item['Question']
         answer = item['Answer']
         if question and answer :
@@ -125,10 +124,10 @@ def run_app():
                                    f"python finetune.py --base_model {base_model} --data_path {base_dataset} --output_dir ./output/saved_model --batch_size {batch_size} --num_epochs {num_epochs} --learning_rate 5e-5 --cutoff_len {cutoff_len} --val_set_size 2000 --lora_r {lora_r} --lora_alpha {lora_alpha} --lora_dropout 0.05 --lora_target_modules '[q_proj,v_proj]' --train_on_inputs")
 
     if mode == "Medical Dataset":
-        #### exist datasets
-        #dataset_list = list_datasets()
-        #ag_news_index = dataset_list.index("quora")
+        # fetch current dataset
+        # medical_datasets = fetch_medical_datasets()
         slider = st.sidebar.checkbox('Tune single dataset customly')
+        
         dataset_list = ["MedQA","MedMCQA","PubMedQA","MMLU Clinical Topics","MedicationQA","LiveQA"]
         st.title("Medical Dataset")
         dataset_key = None
@@ -141,6 +140,7 @@ def run_app():
                 help="Select the dataset to work on.",
             )
         else:
+            show_data_link()
             st.subheader("Dataset Setting 💡")
             selected_options = st.multiselect(
         "Select one or more medical datasets",
@@ -167,7 +167,6 @@ def run_app():
                 else:
                     st.write("Please select at least one dataset before producing instructions ⏱")        
                     
-                print(len(topic_list))
                 num_entries = len(json_data)
                 process_num = cpu_count()
                 
@@ -198,14 +197,7 @@ def run_app():
                 
             
         if dataset_key is not None:
-            if dataset_key == "MedicationQA" or dataset_key == "MedMCQA" or dataset_key == "MedQA" or dataset_key == "PubMedQA" or dataset_key == "LiveQA":
-                dataset_path = "./mimir/data/"+ dataset_key +".json"
-            elif dataset_key == "MMLU Clinical Topics":
-                dataset_path = "./mimir/data/MMLU_clinical_topics.json"
-            # elif :
-            #     dataset_path = "./talky/data/"+dataset_key+".json"
-            with open(dataset_path, 'r') as json_file:
-                json_data = json.load(json_file)
+            dataset_demo = fetch_datasets_demo(dataset_key)
             # Parse the JSON string to obtain a Python data structure (e.g., list)
             st.header(dataset_key+" 📜")
             ds_description = datasets_info[dataset_key]["description"]
@@ -213,8 +205,8 @@ def run_app():
             st.write(ds_description)
             st.markdown("Repo: %s" % ds_url)
             st.caption("Dataset Viewer")
-            st.dataframe(pd.DataFrame(json_data).head(50))
-            file_contents = pd.DataFrame(json_data)
+            st.dataframe(pd.DataFrame(dataset_demo))
+            file_contents = pd.DataFrame(dataset_demo)
             st.download_button(label="Download instruction data processed from "+dataset_key+ " 🔥", data=file_contents.to_csv(), file_name="processed_file.csv")
             
             st.header("Dataset Tuning 🔧")
@@ -227,8 +219,8 @@ def run_app():
             st.write('\n')
             setting_done = st.button("Begin to process "+ dataset_key+ " 🚀 ",)
             if setting_done:
+                json_data = fetch_datasets(dataset_key)
                 topic_list = get_topic_list(json_data,dataset_key)
-                print(len(topic_list))
             
                 num_entries = len(json_data)
                 process_num = cpu_count()
