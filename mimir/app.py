@@ -329,6 +329,7 @@ def run_app():
                 file_process = st.button('Begin to Process file ♻️')
             if setting_done:
                 if topic_list:
+                    progress_bar = st.progress(0.0)
                     if slider_advanced_setting and len(picked_roles) != 0:
                         process = Process(target=mutil_agent, args=(queue,
                                                                     progress,
@@ -354,7 +355,7 @@ def run_app():
                         process.join()
                         st.write("Finished！")
                     else:
-                        progress_bar = st.progress(0.0)
+
                         process = Process(target=baize_demo, args=(queue,
                                                                    progress,
                                                                    topic_list,
