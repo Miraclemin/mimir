@@ -520,7 +520,7 @@ def run_app():
                     st.markdown("***")
                     item_verified = st.session_state.VerifyDialogue[cnt]
                     ai_rsp_verified = item_verified['ai']
-                    st.markdown("#### *💡Verifacation:*")
+                    st.markdown("#### *💡Verification:*")
                     st.markdown(f'<span style="color:#9ACD32">{ai_rsp_verified}</span>', unsafe_allow_html=True)
                     st.markdown("***")
 
