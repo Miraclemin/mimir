@@ -12,3 +12,4 @@ pandas
 py7zr
 pygments
 tiktoken
+openai
