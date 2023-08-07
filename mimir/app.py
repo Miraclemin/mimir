@@ -8,7 +8,7 @@ import re
 from datasets import get_dataset_infos
 from datasets.info import DatasetInfosDict
 from pygments.formatters import HtmlFormatter
-from config.dataset_info_config import datasets_info,fetch_medical_datasets,fetch_datasets,fetch_datasets_demo,show_data_link
+from conf.dataset_info_config import datasets_info,fetch_medical_datasets,fetch_datasets,fetch_datasets_demo,show_data_link
 from utils import (
     process_double_agent,
     process_mutil_agent,
@@ -73,6 +73,14 @@ def run_app():
         key="mode_select",
     )
     st.sidebar.title(f"{side_bar_title_prefix} - {mode}")
+
+    flag_loop = 0
+    api_key = st.sidebar.text_input("Enter your OpenAI API key:")
+    if len(configure["open_ai_api_key"]) == 0 and api_key == "":
+        st.write('Please Input Your OpenAI API Key Or Set In Config File!')
+        flag_loop = 1
+    while flag_loop:
+        time.sleep(1)
     st.markdown(
         "<style>" + HtmlFormatter(style="friendly").get_style_defs(".highlight") + "</style>", unsafe_allow_html=True
     )
@@ -150,7 +158,6 @@ def run_app():
             max_input_token = st.slider('Max Input Tokens', 0, 3000, 100)
             user_temperature = st.slider('Human Temperature', 0.0, 1.0, 0.1)
             ai_temperature = st.slider('AI Temperature', 0.0, 1.0, 0.1)
-            api_key = st.text_input("Enter your OpenAI API key:")
             setting_done = st.button("Begin to process your choosed dataset 🚀 ",)
             if setting_done:
                 if selected_options:
@@ -180,13 +187,13 @@ def run_app():
                     # Create processess
                     for chunk in chunks:
                         p = Process(target=worker, args=(results,chunk,max_rounds,
-                        max_input_token,user_temperature,ai_temperature,api_key))
+                        max_input_token,user_temperature,ai_temperature, api_key))
                         processes.append(p)
                     
                     # Start the processes
                     for p in processes:
                         p.start()
-                        print("Currentky results are: " + str(results.count))
+                        # print("Currentky results are: " + str(results.count))
 
                     # Ensure all processes have finished execution
                     for p in processes:
@@ -215,7 +222,7 @@ def run_app():
             max_input_token = st.slider('Max Input Tokens', 0, 3000, 100)
             user_temperature = st.slider('Human Temperature', 0.0, 1.0, 0.1)
             ai_temperature = st.slider('AI Temperature', 0.0, 1.0, 0.1)
-            api_key = st.text_input("Enter your OpenAI API key:")
+            # api_key = st.text_input("Enter your OpenAI API key:")
             st.write('\n')
             setting_done = st.button("Begin to process "+ dataset_key+ " 🚀 ",)
             if setting_done:
@@ -235,13 +242,13 @@ def run_app():
                     # Create processes
                     for chunk in chunks:
                         p = Process(target=worker, args=(results,chunk,max_rounds,
-                        max_input_token,user_temperature,ai_temperature,api_key))
+                        max_input_token,user_temperature,ai_temperature, api_key))
                         processes.append(p)
                     
                     # Start the processes
                     for p in processes:
                         p.start()
-                        print("Currentky results are: " + str(results.count))
+                        # print("Currentky results are: " + str(results.count))
 
                     # Ensure all processes have finished execution
                     for p in processes:
@@ -313,13 +320,16 @@ def run_app():
                     picked_roles.append(globals()[variable_name])
                     st.markdown(f'<span style="font-size: 15px; color: Green;"><i><b>{Roles.all_roles[globals()[variable_name]]}</i></b></span>', unsafe_allow_html=True)
             st.write('\n')
-            setting_done = st.button('Begin to Talk Demo  🚀')
-            verify_button = st.button('Begin to Verify 👾')
-
+            col1_but, col2_but, col3_but = st.columns([3, 3, 3])
+            with col1_but:
+                setting_done = st.button('Begin to Talk Demo  🚀')
+            with col2_but:
+                verify_button = st.button('Begin to Verify 👾')
+            with col3_but:
+                file_process = st.button('Begin to Process file ♻️')
             if setting_done:
                 if topic_list:
                     if slider_advanced_setting and len(picked_roles) != 0:
-                        progress_bar = st.progress(0.0)
                         process = Process(target=mutil_agent, args=(queue,
                                                                     progress,
                                                                     topic_list,
@@ -353,7 +363,8 @@ def run_app():
                                                                    max_rounds,
                                                                    max_input_token,
                                                                    user_temperature,
-                                                                   ai_temperature))
+                                                                   ai_temperature,
+                                                                   api_key))
                         process.start()
                         while process.is_alive():
                             if progress.value >= 1:
@@ -420,12 +431,14 @@ def run_app():
                         verify_lst.append({'human': human_rsp, 'ai': ai_rsp})
                 st.session_state.VerifyDialogue = verify_lst
 
-            file_process = st.button('Begin to Process file ♻️')
+
             progress = Value('d', 0.0)
-            place_text = st.text("")
+            # place_text = st.text("")
+            place_text.text("")
             if uploaded_file and file_process and len(topic_file_list) != 0:
                 if slider_advanced_setting and len(picked_roles) != 0:
-                    progress_bar = st.progress(0.0)
+                    # progress_bar = st.progress(0.0)
+                    progress_bar.progress(0.0)
                     process = Process(target=mutil_agent, args=(queue,
                                                                 progress,
                                                                 topic_file_list,
@@ -448,7 +461,7 @@ def run_app():
                     place_text.text("Progress: 1.00 %")
                     chat_content = queue.get()
                     process.join()
-                    st.write("Finished！")
+                    # st.write("Finished！")
                     ### multiagent processing
                     date_download = []
                     date_download = process_mutil_agent(chat_content, picked_roles)
@@ -458,7 +471,8 @@ def run_app():
                     st.download_button(label='Click to Download', data=data, file_name='data.json',
                                        mime='application/json')
                 else:
-                    progress_bar = st.progress(0.0)
+                    # progress_bar = st.progress(0.0)
+                    progress_bar.progress(0.0)
                     process = Process(target=baize_demo, args=(queue,
                                                                progress,
                                                                topic_file_list,
@@ -467,7 +481,8 @@ def run_app():
                                                                max_rounds,
                                                                max_input_token,
                                                                user_temperature,
-                                                               ai_temperature))
+                                                               ai_temperature,
+                                                               api_key))
                     process.start()
                     while process.is_alive():
                         if progress.value >= 1:
@@ -479,7 +494,7 @@ def run_app():
                     place_text.text("Progress: 1.00 %")
                     chat_content = queue.get()
                     process.join()
-                    st.write("Finished！")
+                    # st.write("Finished！")
                     #### double agent processing
                     date_download = []
                     date_download = process_double_agent(chat_content)

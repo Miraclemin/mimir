@@ -1,15 +1,6 @@
-import openai
-import pickle as pkl
-from datasets import load_dataset
-import numpy as np
-import sys
-import random
-from tqdm import tqdm
 import time
 import os
 import openai, json, random
-from tenacity import retry, stop_after_attempt, wait_exponential
-import concurrent.futures
 import hashlib
 import sys
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -27,12 +18,6 @@ def calculate_md5(input_list):
     md5_hash.update(str_list.encode('utf-8'))
     # 计算哈希值并返回
     return md5_hash.hexdigest()
-
-
-# # 示例使用
-# my_list = [1, 2, 3, 4, 5]
-# md5_value = calculate_md5(my_list)
-# print("MD5 哈希值：", md5_value)
 
 def num_tokens_from_messages(messages, model):
     """Returns the number of tokens used by a list of messages."""
@@ -66,28 +51,22 @@ def num_tokens_from_messages(messages, model):
     num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
     return num_tokens
 
-def baize_demo(queue, progress, topic_list, index_list, asure = True, max_rounds = 5, max_input_token = 3000, user_temperature = 0.1, ai_temperature = 0.1):
+def baize_demo(queue, progress, topic_list, index_list, asure = True, max_rounds = 5, max_input_token = 3000, user_temperature = 0.1, ai_temperature = 0.1, api_key = ''):
 
-    openai.api_key = None
-# <<<<<<< HEAD:talky/chat_method/baize.py
-    # openai.api_key = "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"
-    # if asure:
-    #     openai.api_type = "azure"
-    #     openai.api_base = "https://biocodeeval-openai.openai.azure.com/"
-    #     openai.api_version = "2023-05-15"
-    #     openai.api_key = 'aaccba8e27374383beb397ecdc615ee5'  # get this API key from the resource (its not inside the OpenAI deployment portal)
-    #     key_bundles = [
-    #         ('aaccba8e27374383beb397ecdc615ee5', "https://biocodeeval-openai.openai.azure.com/"),
-    #         ('3a648cbe477c4c0c8061cbdd0a4b8855', "https://biocodeeval-openai2.openai.azure.com/"),
-    #         ('7864e774f3db4066a54c1979672f316c', "https://biocodeeval-openai3.openai.azure.com/")
-    #     ]
-    openai.api_key = configure["open_ai_api_key"][0]
-    if asure:
-        openai.api_type = "azure"
-        openai.api_base = configure["open_ai_api_base"]
-        openai.api_version = "2023-05-15"
-        openai.api_key = configure["open_ai_api_key"][0]  # get this API key from the resource (its not inside the OpenAI deployment portal)
-        key_bundles = configure["key_bundles"]
+    if api_key != "": ## 从前端传来的key
+        openai.api_key = api_key
+        openai.api_type = "open_ai"
+        openai.api_version = ""
+        openai.api_base = "https://api.openai.com/v1"
+        asure = False
+    else:
+        openai.api_key = configure["open_ai_api_key"][0]
+        if asure:
+            openai.api_type = "azure"
+            openai.api_base = configure["open_ai_api_base"]
+            openai.api_version = "2023-05-15"
+            openai.api_key = configure["open_ai_api_key"][0]  # get this API key from the resource (its not inside the OpenAI deployment portal)
+            key_bundles = configure["key_bundles"]
     total_tokens = 0
     conversation_state = []
     conversation_state_total = []
@@ -225,16 +204,3 @@ def baize_demo(queue, progress, topic_list, index_list, asure = True, max_rounds
         chat_content[query] = instruct.strip()
     queue.put(chat_content)
     return chat_content
-
-# if total_tokens >= max_tokens:
-#     break
-# if len(chat_content) % 100 == 0:
-#     print("total_tokens: {}, examples: {}".format(total_tokens, len(chat_content)))
-#     pkl.dump(
-#         chat_content,
-#         open("collected_data/{}_chat_{}.pkl".format(data_name, index), "wb"),
-#     )
-
-# pkl.dump(
-#     chat_content, open("collected_data/{}_chat_{}.pkl".format(data_name, index), "wb")
-# )
