@@ -19,9 +19,21 @@ Download processed data from: https://drive.google.com/file/d/1QcbArUZHhKWtvIakI
 
 ## How to generate data?
 
+<p align="center">
+  <img src="assets/datadownload.png" width="800"/>
+</p>
+
 ## How to generate data based on own data file?
 
+<p align="center">
+  <img src="assets/agent.png" width="800"/>
+</p>
+
 ## How to fineturn using our data?
+
+<p align="center">
+  <img src="assets/train.jpg" width="800"/>
+</p>
 
 ## Citation
 If you find Mimir useful, please cite the following reference:
