@@ -33,7 +33,7 @@
 ## How to fineturn using our data?
 
 <p align="center">
-  <img src="assets/train.jpg" width="800"/>
+  <img src="assets/train.png" width="800"/>
 </p>
 
 ## Citation
