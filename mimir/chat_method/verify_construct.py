@@ -20,8 +20,6 @@ import json
 from conf.instruction_config import INSTRUCTION_VERIFY
 from conf.config import configure
 import openai, json, random
-from tenacity import retry, stop_after_attempt, wait_exponential
-import concurrent.futures
 
 
 openai.api_type = "azure"
@@ -53,12 +51,6 @@ def verify(q4human: str, a4ai: str) -> Dict[str, str]:
                                 temperature=0.1,
                                 model_type='chatgpt')
     return narration
-    # print(f"narration: {narration}")
-    # res_dct =  ast.literal_eval(narration) 
-    # if 'Question' in res_dct and 'Answer' in res_dct:
-    #     return res_dct
-    # else:
-    #     return {'Question': q4human, 'Answer': a4ai}
 
 
 def make_narration(instruction=None, *args, **kwargs):
