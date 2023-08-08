@@ -18,21 +18,18 @@ sys.path.append(str(ROOT))
 
 import json
 from conf.instruction_config import INSTRUCTION_VERIFY
+from conf.config import configure
 import openai, json, random
 from tenacity import retry, stop_after_attempt, wait_exponential
 import concurrent.futures
 
+
 openai.api_type = "azure"
-openai.api_base = "https://gersteinbiocodeeval-eastus2.openai.azure.com/"
+openai.api_base = configure["open_ai_api_base"]
 openai.api_version = "2023-05-15"
 # get this API key from the resource (its not inside the OpenAI deployment portal)
-openai.api_key = '31b8638c9eea48709a596501490f9e88' 
-
-key_bundles = [
-    ('aaccba8e27374383beb397ecdc615ee5', "https://biocodeeval-openai.openai.azure.com/"),
-    ('3a648cbe477c4c0c8061cbdd0a4b8855', "https://biocodeeval-openai2.openai.azure.com/"),
-    ('7864e774f3db4066a54c1979672f316c', "https://biocodeeval-openai3.openai.azure.com/")
-]
+openai.api_key = configure["open_ai_api_key"][0]
+key_bundles =  configure["key_bundles"]
 
 
 def load_json_list(fp: Union[Path, str], encoding='utf-8') -> List[dict]:
